@@ -1,0 +1,45 @@
+# A chained function workflow
+#
+#        |
+#        v
+#    +-------+
+#    | flow1 |
+#    +-------+
+#        |
+#    +-------+
+#    | flow2 |
+#    +-------+
+#        |
+#    +-------+
+#    | flow2 |
+#    +-------+
+#        |
+#        v
+#      .....
+
+apiVersion: serverless.tass.io/v1alpha1
+kind: Workflow
+metadata:
+  namespace: default
+  name: bench-02-chained
+spec:
+  spec:
+  - name: flow1
+    function: bench-02-chained1
+    statement: direct
+    role: start
+    output: 
+      - flow2
+  - name: flow2
+    function: bench-02-chained2
+    statement: direct
+    role: start
+    output: 
+      - flow3
+  - name: flow3
+    function: bench-02-chained3
+    statement: direct
+    role: start
+    output: 
+      - flow4
+  ...

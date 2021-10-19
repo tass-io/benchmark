@@ -1,0 +1,32 @@
+# A direct function workflow to pass large payload twice
+#
+#        |
+#        v
+#    +-------+
+#    | start |
+#    +-------+
+#        |
+#    +-------+
+#    |  end  |
+#    +-------+
+#        |
+#        v
+#
+
+apiVersion: serverless.tass.io/v1alpha1
+kind: Workflow
+metadata:
+  namespace: default
+  name: bench-03-passp
+spec:
+  spec:
+  - name: start
+    function: bench-03-passp
+    statement: direct
+    role: start
+    output:
+     - end
+  - name: end
+    function: bench-03-passp
+    statement: direct
+    role: end

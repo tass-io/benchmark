@@ -1,0 +1,22 @@
+# A direct hello world function workflow
+#
+#        |
+#        v
+#    +-------+
+#    | start |
+#    +-------+
+#        |
+#        v
+#
+
+apiVersion: serverless.tass.io/v1alpha1
+kind: Workflow
+metadata:
+  namespace: default
+  name: bench-01-hello
+spec:
+  spec:
+  - name: start
+    function: bench-01-hello
+    statement: direct
+    role: orphan
