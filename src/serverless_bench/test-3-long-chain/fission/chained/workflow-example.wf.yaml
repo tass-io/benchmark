@@ -1,0 +1,37 @@
+# A chained function workflow
+#
+#        |
+#        v
+#    +-------+
+#    | flow1 |
+#    +-------+
+#        |
+#    +-------+
+#    | flow2 |
+#    +-------+
+#        |
+#    +-------+
+#    | flow3 |
+#    +-------+
+#        |
+#        v
+#      .....
+
+apiVersion: 1
+output: Flow<last_id>
+tasks:
+  Flow1:
+    run: bench-02-chained1
+  Flow2:
+    run: bench-02-chained2
+    inputs:
+      body: "{ output('Flow1') }"
+    requires:
+    - Flow1
+  Flow3:
+    run: bench-02-chained3
+    inputs:
+      body: "{ output('Flow2') }"
+    requires:
+    - Flow2
+  ...
