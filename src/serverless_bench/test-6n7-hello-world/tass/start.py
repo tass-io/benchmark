@@ -21,8 +21,8 @@ def req():
     res = requests.post(url='http://<TODO>/bench/01/hello', data={
         'name': 'tass-benchmark' 
     })
-    endTime = int(round(time.time() * 1000))
     res = res.json()
+    endTime = int(round(time.time() * 1000))
     startTime = int(res['startTime'])
     return benchTime, startTime, endTime
 

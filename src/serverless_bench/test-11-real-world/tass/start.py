@@ -123,12 +123,3 @@ def generateInvokes():
 
 if __name__ == "__main__":
     generateInvokes()
-
-
-def deploy():
-    # cli 部署函数
-    print(os.popen("tass-cli function create -c ./function/hello/code.zip -n bench-01-hello").read())
-    # 部署各种 yaml 文件
-    print(os.popen("kubectl apply -f ./function/hello/function.yaml -f ./workflow/hello/workflow.yaml").read())
-    # 创建 Ingress 路由
-    print(os.popen("tass-cli route create -n bench-01-hello -p /bench/01/hello").read())
