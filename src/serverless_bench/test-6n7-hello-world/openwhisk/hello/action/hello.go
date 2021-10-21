@@ -4,7 +4,7 @@ import "time"
 
 // nolint: unused
 func Main(obj map[string]interface{}) map[string]interface{} {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	name := "stranger"
 	Pname, ok := obj["name"].(string)
 	if ok {

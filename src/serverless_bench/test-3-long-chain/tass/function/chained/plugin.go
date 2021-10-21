@@ -4,7 +4,7 @@ import "time"
 
 // nolint: unused
 func Handler(parameters map[string]interface{}) (map[string]interface{}, error) {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	n := 1 + int(parameters["n"].(float64))
 	startTimes := []int64{}
 	retTimes := []int64{}
@@ -18,10 +18,10 @@ func Handler(parameters map[string]interface{}) (map[string]interface{}, error) 
 		for _, rt := range rts {
 			retTimes = append(retTimes, int64(rt.(float64)))
 		}
-		retTimes = append(retTimes, time.Now().UnixMilli())
+		retTimes = append(retTimes, time.Now().UnixNano()/1000000)
 		return map[string]interface{}{"n": n, "startTimes": startTimes, "retTimes": retTimes}, nil
 	} else {
-		retTimes = append(retTimes, time.Now().UnixMilli())
+		retTimes = append(retTimes, time.Now().UnixNano()/1000000)
 		return map[string]interface{}{"n": n, "startTimes": startTimes, "retTimes": retTimes}, nil
 	}
 }

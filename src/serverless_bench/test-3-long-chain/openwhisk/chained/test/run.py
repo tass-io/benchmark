@@ -35,12 +35,11 @@ def main():
     warmupTimes = argv[2]
     threads = []
     
-    containerName = "arraySum_chained"
     actionName = "arraySum_sequence"
     params = "--param n 0"
 
-    r = os.popen("docker stop `docker ps | grep %s | awk {'print $1'}`" %containerName)
-    r.read()
+    print("Wati till all the resource release for cold start")
+    print(os.popen("while [[ -n `kubectl get pod -A | grep wskowdev-invoker | awk '{print 2}'` ]]; do sleep 1; done").read())
 
     # First: warm up
     for i in range(clientNum):

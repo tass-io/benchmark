@@ -33,7 +33,7 @@ type param struct {
 
 // nolint: unused
 func Handler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -52,9 +52,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		sequence = p.Sequence + 1
 	}
 
-	mmStartTime := time.Now().UnixMilli()
+	mmStartTime := time.Now().UnixNano() / 1000000
 	memSize := mallocRandMem()
-	mmEndTime := time.Now().UnixMilli()
+	mmEndTime := time.Now().UnixNano() / 1000000
 	mmExecTime := mmEndTime - mmStartTime
 
 	execTime := execRandTime(mmExecTime)
@@ -167,7 +167,7 @@ func binarySearch(nums []float64, target float64) int {
 }
 
 func alu(times int64) int64 {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	rand.Seed(time.Now().Unix())
 	base := 10000
 	a := int64(10 + rand.Intn(90))
@@ -185,7 +185,7 @@ func alu(times int64) int64 {
 				temp = a / b
 			}
 		}
-		endTime := time.Now().UnixMilli()
+		endTime := time.Now().UnixNano() / 1000000
 		if endTime-startTime > times {
 			break
 		}

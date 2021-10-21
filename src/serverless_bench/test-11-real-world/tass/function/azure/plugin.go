@@ -28,7 +28,7 @@ const (
 
 // nolint: unused
 func Handler(parameters map[string]interface{}) (map[string]interface{}, error) {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	var sequence int
 	if sq, ok := parameters["sequence"].(float64); !ok {
 		sequence = 0
@@ -36,9 +36,9 @@ func Handler(parameters map[string]interface{}) (map[string]interface{}, error) 
 		sequence = int(sq) + 1
 	}
 
-	mmStartTime := time.Now().UnixMilli()
+	mmStartTime := time.Now().UnixNano() / 1000000
 	memSize := mallocRandMem()
-	mmEndTime := time.Now().UnixMilli()
+	mmEndTime := time.Now().UnixNano() / 1000000
 	mmExecTime := mmEndTime - mmStartTime
 
 	execTime := execRandTime(mmExecTime)
@@ -139,7 +139,7 @@ func binarySearch(nums []float64, target float64) int {
 }
 
 func alu(times int64) int64 {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	rand.Seed(time.Now().Unix())
 	base := 10000
 	a := int64(10 + rand.Intn(90))
@@ -157,7 +157,7 @@ func alu(times int64) int64 {
 				temp = a / b
 			}
 		}
-		endTime := time.Now().UnixMilli()
+		endTime := time.Now().UnixNano() / 1000000
 		if endTime-startTime > times {
 			break
 		}

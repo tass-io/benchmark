@@ -9,6 +9,10 @@
 # PURPOSE.
 # See the Mulan PSL v1 for more details.
 #
-wsk -i action update arraySum_chained arraySum_chained.go --memory 256
-wsk -i action update arraySum_sequence --sequence arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained,arraySum_chained
-
+wsk -i action update arraySum_chained1 arraySum_chained.go --memory 128
+wsk -i action update arraySum_chained2 arraySum_chained.go --memory 128
+wsk -i action update arraySum_chained3 arraySum_chained.go --memory 128
+wsk -i action update arraySum_chained4 arraySum_chained.go --memory 128
+wsk -i action update arraySum_chained5 arraySum_chained.go --memory 128
+wsk -i action update arraySum_chained6 arraySum_chained.go --memory 128
+wsk -i action update arraySum_sequence --sequence arraySum_chained1,arraySum_chained2,arraySum_chained3,arraySum_chained4,arraySum_chained5,arraySum_chained6

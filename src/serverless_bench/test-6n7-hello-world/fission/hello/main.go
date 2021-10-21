@@ -13,7 +13,7 @@ type param struct {
 
 // nolint: unused
 func Handler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

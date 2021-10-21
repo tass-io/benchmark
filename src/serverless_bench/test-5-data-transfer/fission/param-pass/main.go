@@ -15,7 +15,7 @@ type param struct {
 
 // nolint: unused
 func Handler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -34,12 +34,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	res := map[string]interface{}{}
 	if p.Rettime == 0 {
 		fmt.Println("chain head with payload size: ", len(payload))
-		res = map[string]interface{}{"payload": payload, "retTime": time.Now().UnixMilli()}
+		res = map[string]interface{}{"payload": payload, "retTime": time.Now().UnixNano() / 1000000}
 
 	} else {
 		comTime := startTime - retTime
 		fmt.Println("payload size:", len(payload))
-		res = map[string]interface{}{"retTime": time.Now().UnixMilli(), "startTime": startTime, "comTime": comTime}
+		res = map[string]interface{}{"retTime": time.Now().UnixNano() / 1000000, "startTime": startTime, "comTime": comTime}
 	}
 	rb, err := json.Marshal(res)
 	if err != nil {

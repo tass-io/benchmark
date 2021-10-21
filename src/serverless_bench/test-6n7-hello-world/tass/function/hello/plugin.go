@@ -4,7 +4,7 @@ import "time"
 
 // nolint: unused
 func Handler(parameters map[string]interface{}) (map[string]interface{}, error) {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	name := "stranger"
 	Pname, ok := parameters["name"].(string)
 	if ok {

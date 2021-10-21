@@ -13,7 +13,7 @@
 
 FUNCTION_DIR=./
 CDF_DIR=./CDFs
-zip -r function.zip \
+zip -r code.zip \
 $FUNCTION_DIR/main.go \
 $CDF_DIR/memCDF.csv \
 $CDF_DIR/execTimeCDF.csv
@@ -21,4 +21,4 @@ $CDF_DIR/execTimeCDF.csv
 SEQUENCE_ID=$1
 FUNCTION_ID=$2
 # Create function
-wsk -i action update func$SEQUENCE_ID-$FUNCTION_ID function.zip --kind go:1.15
+wsk -i action update func$SEQUENCE_ID-$FUNCTION_ID code.zip --kind go:1.15

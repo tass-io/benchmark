@@ -73,7 +73,7 @@ while getopts "r:m:t:w:lWR" OPT; do
             exit
         fi
         # If there's no paused container, the mode should not be supported
-        if [[ -z `docker ps | grep $CONTAINERNAME | awk {'print $1'}` ]];then
+        if [[ -z `kubectl get pod -A | grep wskowdev-invoker | awk '{print $2}'` ]];then
             echo "Error: could not find paused containers of the action"
             exit
         fi
@@ -109,9 +109,9 @@ fi
 # mode = warm: kill all the running containers and then warm up
 if [[ $MODE = "warm" && $RUNONLY = false ]]; then
     echo "Warm up.."
-    if [[ -n `docker ps | grep $CONTAINERNAME | awk {'print $1'}` ]];then
-        echo 'Stop the running container..'
-        docker stop `docker ps | grep $CONTAINERNAME | awk {'print $1'}`
+    if [[ -n `kubectl get pod -A | grep wskowdev-invoker | awk '{print $2}'` ]];then
+        echo 'Wait till all the warm Pod stopped..'
+        while [[ -n `kubectl get pod -A | grep wskowdev-invoker | awk '{print $2}'` ]]; do sleep 1; done
     fi
     for i in $(seq 1 $WARMUP)
     do
@@ -136,8 +136,8 @@ LATENCYSUM=0
 for i in $(seq 1 $TIMES)
 do
     if [[ $MODE = 'cold' ]]; then
-        echo 'Stop the running container..'
-        docker stop `docker ps | grep $CONTAINERNAME | awk {'print $1'}`
+        echo 'Wait till all the warm Pod stopped..'
+        while [[ -n `kubectl get pod -A | grep wskowdev-invoker | awk '{print $2}'` ]]; do sleep 1; done
     fi
 
     echo Measure $MODE start up time: no.$i

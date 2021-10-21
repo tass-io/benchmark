@@ -35,13 +35,11 @@ def main():
     warmupTimes = argv[2]
     threads = []
     
-    containerName = "hellogolang"
     actionName = "hello-golang"
     params = ""
 
-    # TODO: WTF? Must figure out what this shit is doing
-    r = os.popen("docker stop `docker ps | grep %s | awk {'print $1'}`" %containerName)
-    r.read()
+    print("Wati till all the Pod stopped")
+    print(os.popen("while [[ -n `kubectl get pod -A | grep wskowdev-invoker | awk '{print $2}'` ]]; do sleep 1; done").read())
 
     # First: warm up
     for i in range(clientNum):

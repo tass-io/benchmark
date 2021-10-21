@@ -15,7 +15,7 @@ type param struct {
 
 // nolint: unused
 func Handler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().UnixNano() / 1000000
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -39,10 +39,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(p.RetTimes) != 0 {
 		retTimes = append(retTimes, p.RetTimes...)
-		retTimes = append(retTimes, time.Now().UnixMilli())
+		retTimes = append(retTimes, time.Now().UnixNano()/1000000)
 		res = map[string]interface{}{"n": n, "startTimes": startTimes, "retTimes": retTimes}
 	} else {
-		retTimes = append(retTimes, time.Now().UnixMilli())
+		retTimes = append(retTimes, time.Now().UnixNano()/1000000)
 		res = map[string]interface{}{"n": n, "startTimes": startTimes, "retTimes": retTimes}
 	}
 	rb, err := json.Marshal(res)
