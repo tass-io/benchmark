@@ -14,9 +14,7 @@ source eval-config
 result=eval-result.log
 if [[ -z `wsk -i action list | grep $ACTIONNAME` ]];then
     echo "The action is not deployed, deploy it now."
-    cd ../action/
     ./action_update.sh
-    cd ../test
     echo -e "\n\n"
 fi
 if [[ -e $result ]]; then

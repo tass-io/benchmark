@@ -8,3 +8,6 @@ plugin.so
 main
 
 __pycache__
+
+payload
+test-results

@@ -14,6 +14,18 @@
 Sizesdic=(0 1024 5120 10240 15360 20480 25600 30720 35840 40960 46080 51200)
 #Sizesdic=(0)
 
+./action_update.sh
+
+if [[ ! -d ./payload ]]
+then
+    mkdir payload
+fi
+
+if [[ ! -d ./test-results ]]
+then
+    mkdir test-results
+fi
+
 for payload_size in ${Sizesdic[@]}
 do
     TIMES=20
@@ -40,6 +52,8 @@ do
         LATENCYSUM=`expr $latency + $LATENCYSUM`
         LATENCIES[$i]=$latency
         echo "time $i finished"
+        # one function can be called 60 times a minute
+        sleep 1
     done
 
     rm $PAYLOADFILE
