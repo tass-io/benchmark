@@ -10,5 +10,5 @@
 # PURPOSE.
 # See the Mulan PSL v1 for more details.
 #
-wsk -i action invoke hello-golang --result --blocking -p payload Messi
+wsk -i action invoke hello-golang --result --blocking -p name Messi
 

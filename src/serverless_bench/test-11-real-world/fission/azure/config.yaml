@@ -1,5 +1,5 @@
 # The number of sequences
-sample_number: 30
+sample_number: 3
 
 # The file that stores the output information
 result_file: "invokeResult.csv"

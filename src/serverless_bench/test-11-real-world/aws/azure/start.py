@@ -1,6 +1,20 @@
-import os, requests, time, csv, yaml, random, threading
+import os, requests, time, csv, yaml, random, threading, subprocess, json
 import utils
-from itertools import repeat
+
+name = "bench-04-azure"
+
+stepfuncs_arn = "arn:aws-cn:states:cn-northwest-1:648513213171:stateMachine:"
+errors = 0
+succ_status = 'SUCCEEDED'
+
+def wait():
+    time.sleep(6)
+
+def cmd(cmd):
+    print(cmd)
+    res = subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+    print(res)
+    return res
 
 # Constant parameters
 SECONDS_OF_A_DAY=3600 * 24
@@ -70,10 +84,15 @@ def Invoke(appName, results):
 
 # Directly call the target application, return the latency
 def callInvoke(appName):
+    global errors
     startTime = utils.getTime()
-    res = requests.post(url='http://<TODO>/bench/04/azure/%s' %appName)
-    res = res.json()
+    res = cmd("aws stepfunctions start-sync-execution --profile linxuyalun --state-machine-arn %s%s" %(stepfuncs_arn, appName))
+    res = json.loads(res)
     endTime = utils.getTime()
+    status = res['status']
+    if status != succ_status:
+        errors = errors + 1
+        print(res['status'])
     return endTime - startTime
 
 # main function
@@ -100,7 +119,7 @@ def generateInvokes():
 
     testStartTime = utils.getTime()
     for i in range(SAMPLE_NUM):
-        appName = "%d" %i
+        appName = "%s%d" %(name, i)
         t = threading.Thread(target=Invoke,args=(appName,results))
         threads.append(t)
 
@@ -119,6 +138,7 @@ def generateInvokes():
     duration = (testEndTime - testStartTime) / MILLISECONDS_PER_SECOND
     print("Test duration: %.2f s" %duration)
     print("Test finished")
+    print("ERRORS REQS: %d" %errors)
 
 if __name__ == "__main__":
     generateInvokes()

@@ -73,8 +73,8 @@ def test(conf):
 def do(input_conf):
     conf = default_test_conf.copy()
     conf.update(input_conf)
+    deploy(conf)
     if conf['type'] == 'warm':
         for i in repeat(None, conf['warm_up_times']):
             req()
-    deploy(conf)
     test(conf)

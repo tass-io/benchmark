@@ -7,11 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-)
 
-var (
-	pid    int
-	memory []byte
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 const (
@@ -24,44 +21,53 @@ const (
 	PLACEHOLDER_LEN   = 100
 )
 
-// nolint: unused
-func Main(obj map[string]interface{}) map[string]interface{} {
+type Param struct {
+	Sequence int `json:"sequence"`
+}
+
+type Output struct {
+	Sequence  int   `json:"sequence"`
+	StartTime int64 `json:"startTime"`
+	MemSize   int   `json:"memSize"`
+	ExecTime  int64 `json:"execTime"`
+}
+
+func HandleRequest(p Param) (Output, error) {
 	startTime := time.Now().UnixNano() / 1000000
 	var sequence int
-	if sq, ok := obj["sequence"].(float64); !ok {
-		sequence = 0
-	} else {
-		sequence = int(sq) + 1
+	if p.Sequence != 0 {
+		sequence = p.Sequence + 1
 	}
 
 	mmStartTime := time.Now().UnixNano() / 1000000
-	memSize, err := mallocRandMem()
+	memory, memSize, err := mallocRandMem()
 	if err != nil {
-		return map[string]interface{}{"Internal err": err.Error()}
+		return Output{}, err
 	}
 	mmEndTime := time.Now().UnixNano() / 1000000
 	mmExecTime := mmEndTime - mmStartTime
 
 	execTime, err := execRandTime(mmExecTime)
 	if err != nil {
-		return map[string]interface{}{"Internal err": err.Error()}
+		return Output{}, err
 	}
 	// Prevent Golang GC process
 	fmt.Print(memory[0])
-	return map[string]interface{}{"sequence": sequence, "startTime": startTime, "memSize": memSize, "execTime": execTime}
+	res := Output{Sequence: sequence, StartTime: startTime, MemSize: memSize, ExecTime: execTime}
+	return res, nil
 }
 
-func mallocRandMem() (int, error) {
+func mallocRandMem() ([]byte, int, error) {
 	bias := 2 // The Golang Program memory usage
 	randMemI, err := getRandValueRefByCDF(memCDFFilename)
 	randMem := randMemI - bias
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
 	fmt.Printf("Alloc random memory: %v\n", randMem)
 	// mimic C program calling
-	allocMem(randMem)
-	return randMem, nil
+	memory := allocMem(randMem)
+	return memory, randMem, nil
 }
 
 func execRandTime(mmExecTime int64) (int64, error) {
@@ -80,14 +86,15 @@ func execRandTime(mmExecTime int64) (int64, error) {
 
 // =====================  From C program ============================
 // Alloc Mem. Rewrite From ServerlessBench C Program
-func allocMem(randMem int) {
+func allocMem(randMem int) []byte {
 	memSize := randMem * MEGA_BYTE
-	memory = make([]byte, memSize)
+	memory := make([]byte, memSize)
 	placeholder := generatePlaceholder()
 	for i := 0; i < memSize-PLACEHOLDER_LEN; i += PLACEHOLDER_LEN {
 		copy(memory[i:], placeholder)
 	}
 	fmt.Printf("Alloc %d bytes memory\n", memSize)
+	return memory
 }
 
 func generatePlaceholder() []byte {
@@ -177,6 +184,10 @@ func alu(times int64) int64 {
 		}
 	}
 	return temp
+}
+
+func main() {
+	lambda.Start(HandleRequest)
 }
 
 // ===================================================================

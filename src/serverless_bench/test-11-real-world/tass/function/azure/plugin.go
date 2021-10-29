@@ -122,20 +122,20 @@ func getRandValueRefByCDF(filename string) int {
 }
 
 func binarySearch(nums []float64, target float64) int {
-	upper := len(nums) - 1
+	upper := len(nums)
 	lower := 0
 	var mid int
-	for lower <= upper {
+	for lower < upper {
 		mid = int((upper + lower) / 2)
-		if target > nums[mid] {
+		if target >= nums[mid+1] {
 			lower = mid + 1
-		} else if target < nums[mid-1] {
-			upper = mid - 1
+		} else if target < nums[mid] {
+			upper = mid
 		} else {
 			return mid
 		}
 	}
-	return mid
+	return lower
 }
 
 func alu(times int64) int64 {

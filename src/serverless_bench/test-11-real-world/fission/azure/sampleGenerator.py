@@ -86,7 +86,7 @@ def sampleActionGen(chainLenSampleList):
                 elem['requires'] = ["Flow%d" %(functionID-1)]
             workflow['tasks']['Flow%d' %functionID] = elem
             # Create and apply functions
-            print(os.popen("fission fn create --name %s --env go --src code.zip --entrypoint Handler --maxmemory 128" %func_name).read())
+            print(os.popen("fission fn create --name %s --env go --src main.go --entrypoint Handler --maxmemory 512" %func_name).read())
         workflow['output'] = "Flow%d" %length
         # Create workflow and apply it
         create_yaml_file(workflow, workflow_path)

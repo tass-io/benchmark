@@ -69,13 +69,13 @@ def sampleActionGen(chainLenSampleList):
             r = os.popen(cmd)
             r.read()
 
-            funcName = "func%d-%d" %(sequenceID, functionID)
+            funcName = "func-%d-%d" %(sequenceID, functionID)
             funcChainStr = funcChainStr + funcName + ","
 
         # Eliminate the ',' in the end
         funcChainStr = funcChainStr[:-1]
         print("%s: %s" %(appName, funcChainStr))
-        cmd = "wsk -i action update %s --sequence %s" %(appName, funcChainStr)
+        cmd = "wsk -i action update %s --sequence %s -t 300000" %(appName, funcChainStr)
         
         # update the action sequence
         r = os.popen(cmd)

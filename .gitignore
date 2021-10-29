@@ -11,3 +11,6 @@ __pycache__
 
 payload
 test-results
+*result*.csv
+*cold*.csv
+*Result*.csv

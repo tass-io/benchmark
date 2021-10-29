@@ -107,7 +107,7 @@ def sampleActionGen(chainLenSampleList):
                     'environment': 'Golang',
                     'resource': {
                         'cpu': '1',
-                        'memory': '128Mi'
+                        'memory': '512Mi'
                     }
                 }
             }
