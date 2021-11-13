@@ -36,7 +36,7 @@ def cmd(cmd):
 
 def empty_str(str):
     return len(str) == 0
-    
+
 def clear_all():
     while not empty_str(cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s" %name)):
         cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s | cut -d \\\" -f 4 | xargs -n1 -P0 -I{} aws lambda --profile linxuyalun delete-function --function-name {}" %name)
@@ -85,12 +85,12 @@ def create_function(n):
             wait()
 
 def deploy(conf):
-    # 清除所有的 lambda function 与 stepfunction machine 
+    # 清除所有的 lambda function 与 stepfunction machine
     clear_all()
     # 部署 lambda function，创建 machine 文件，并部署 stepfunctions machine
     create_function(int(conf['n']))
     create_machine(int(conf['n']))
-    
+
 def req():
     global errors
     benchTime = int(round(time.time() * 1000))
@@ -107,8 +107,8 @@ def req():
         startTimes = output['startTimes']
     return benchTime, startTimes, endTime, status
 
-def test(conf):  
-    # warm tests      
+def test(conf):
+    # warm tests
     for i in repeat(None, conf['warm_up_times']):
         req()
     resfile = open(conf['res_file'], 'w')
