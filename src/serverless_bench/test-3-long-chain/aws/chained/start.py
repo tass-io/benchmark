@@ -36,7 +36,7 @@ def cmd(cmd):
 
 def empty_str(str):
     return len(str) == 0
-    
+
 def clear_all():
     while not empty_str(cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s" %name)):
         cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s | cut -d \\\" -f 4 | xargs -n1 -P0 -I{} aws lambda --profile linxuyalun delete-function --function-name {}" %name)
@@ -85,12 +85,12 @@ def create_function(n):
             wait()
 
 def deploy(conf):
-    # 清除所有的 lambda function 与 stepfunction machine 
+    # 清除所有的 lambda function 与 stepfunction machine
     clear_all()
     # 部署 lambda function，创建 machine 文件，并部署 stepfunctions machine
     create_function(int(conf['n']))
     create_machine(int(conf['n']))
-    
+
 def req():
     global errors
     benchTime = int(round(time.time() * 1000))
@@ -107,6 +107,7 @@ def req():
         startTimes = output['startTimes']
     return benchTime, startTimes, endTime, status
 
+<<<<<<< HEAD
 def test(conf):  
     # warm tests  
     if conf['loop_times'] != 0:    
@@ -123,6 +124,23 @@ def test(conf):
                 avgTime += endTime - benchTime
         writer.writerow([avgTime / conf['loop_times']])
         resfile.close()
+=======
+def test(conf):
+    # warm tests
+    for i in repeat(None, conf['warm_up_times']):
+        req()
+    resfile = open(conf['res_file'], 'w')
+    writer = csv.writer(resfile, delimiter=',')
+    writer.writerow(['benchTime', 'startTimes', 'endTime'])
+    avgTime = 0
+    for i in repeat(None, conf['loop_times']):
+        benchTime, startTimes, endTime, status = req()
+        if status == succ_status:
+            writer.writerow([benchTime, startTimes, endTime])
+            avgTime += endTime - benchTime
+    writer.writerow([avgTime / conf['loop_times']])
+    resfile.close()
+>>>>>>> 35da037467e73b8fa76001a8619eec3dec9fab16
     # cold tests
     if conf['cold_times'] != 0:
         resfile = open(conf['cold_res_file'], 'w')
