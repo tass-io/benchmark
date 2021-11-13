@@ -11,10 +11,8 @@
 
 import random
 import os
-import yaml
 
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'config.yaml')), yaml.FullLoader)
-SAMPLE_NUM = config['sample_number']
+SAMPLE_NUM = 30
 
 # Generate a list of length according to the CDF of the chain length in an app, 
 # each of which represents the chain length of an application 

@@ -11,24 +11,21 @@
 
 import random
 import utils
-import numpy as np
 import time
 import threading
 import os
-import yaml
 
 # Constant parameters
 SECONDS_OF_A_DAY=3600 * 24
 MILLISECONDS_PER_SECOND = 1000
 
-
-# Config parameters
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'config.yaml')), yaml.FullLoader)
-
-TOTAL_RUN_TIME = int(config['total_run_time'])
-RESULT_FILENAME = config['result_file']
-SAMPLE_NUM = config['sample_number']
-MANUAL_SAMPLE_GENERATION = config['manual_sample_generation']
+# Configuration
+# Warning:: SAMPLE_NUM needs to be modified in sampleGenerator.py too
+TOTAL_RUN_TIME = 3600
+RESULT_FILENAME = "invokeResult.csv"
+SAMPLE_NUM = 30
+MANUAL_SAMPLE_GENERATION = False
+chainLenSampleList = []
 
 # get random IAT according to the IAT csv
 def getRandAvgIAT():
@@ -47,7 +44,6 @@ def getRandCV():
 def getRandomIAT(avgIAT, cv):
     # generate a Gauss distributed series according to the avgIAT and cv
     standardDeviation  = avgIAT * cv
-    # return float(np.random.normal(avgIAT, standardDeviation, 1)[0])
     while(True):
         IAT = random.gauss(avgIAT, standardDeviation)
 
@@ -106,6 +102,7 @@ def generateInvokes():
     # Automatically generate random samples
     # We suggest that generate the samples manually or automatically generate samples only once
     if not MANUAL_SAMPLE_GENERATION:
+        global chainLenSampleList
         print("Generate the samples")
         import sampleGenerator
         chainLenSampleList = sampleGenerator.chainLenSampleListGen(SAMPLE_NUM)
@@ -131,7 +128,17 @@ def generateInvokes():
 
     for appName, result in results.items():
         resultFile.write("%s,%.2f,%.2f,%s\n" %(appName, result['avgIAT'], result['cv'], str(result['latencies'])[1:-1]))
-    
+    # write data files
+    resultFile.write("all results: %s\n" %(str(results)))
+    resultFile.write("app len arr: %s\n" %(str(chainLenSampleList)))
+    avgIATArr=[0.0 for i in range(SAMPLE_NUM)]
+    avgCVArr=[0.0 for i in range(SAMPLE_NUM)]
+    for appName, result in results.items():
+        idx = int(appName[3:])
+        avgIATArr[idx] = result['avgIAT']
+        avgCVArr[idx] = result['cv']
+    resultFile.write("avgIAT arr: %s\n" %(str(avgIATArr)))
+    resultFile.write("avgCV arr: %s\n" %(str(avgCVArr)))
     resultFile.close()
     testEndTime = utils.getTime()
     print("-----------------------")

@@ -10,6 +10,5 @@
 # PURPOSE.
 # See the Mulan PSL v1 for more details.
 #
-#wsk -i action update ParamPass ParamPass.go
-wsk -i action update ParamPass main-bin.zip --main main --docker openwhisk/action-golang-v1.16:nightly -t 600000
-wsk -i action update ParamPassSeq --sequence ParamPass,ParamPass -t 600000
+wsk -i action update ParamPass ParamPass.go
+wsk -i action update ParamPassSeq --sequence ParamPass,ParamPass

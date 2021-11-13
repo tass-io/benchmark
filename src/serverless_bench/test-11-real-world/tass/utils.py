@@ -13,7 +13,6 @@
 # This file defines some helper functions
 import time
 import random
-import numpy as np
 def binarySearch(nums, target):
     """
     :type nums: List[int]
@@ -84,15 +83,5 @@ def getRandValueRefByCDF(CDFFilename):
     fCDF.close()
     return randValue
 
-# Generate Gaussion distribution data series according to the mean value 
-def genNorm(mean):
-    CV = getRandCV()
-    print("CV: %d" %CV)
-    Norm=np.random.normal(loc=mean, scale=CV*mean, size=10)
-    print(Norm)
-
 def getRandCV():
     return random.randint(0,2) * 0.5
-
-if __name__=='__main__':
-    genNorm(10)

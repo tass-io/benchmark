@@ -39,7 +39,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		comTime := startTime - retTime
 		fmt.Println("payload size:", len(payload))
-		res = map[string]interface{}{"retTime": time.Now().UnixNano() / 1000000, "startTime": startTime, "comTime": comTime}
+		res = map[string]interface{}{"payload": payload, "retTime": time.Now().UnixNano() / 1000000, "startTime": startTime, "comTime": comTime}
 	}
 	rb, err := json.Marshal(res)
 	if err != nil {

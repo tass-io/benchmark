@@ -117,6 +117,8 @@ if [[ $MODE = "warm" && $RUNONLY = false ]]; then
     do
         echo "The $i-th warmup..."
         wsk -i action invoke $ACTIONNAME --blocking --result $PARAMS > /dev/null
+        # one function can be called 60 times a minute
+        sleep 1
     done
     echo "Warm up complete"
     if [[ $WARMUPONLY = true ]]; then
@@ -152,6 +154,8 @@ do
     LATENCYSUM=`expr $latency + $LATENCYSUM`
     # The array starts from array[1], not array[0]!
     LATENCIES[$i]=$latency
+    # one function can be called 60 times a minute
+    sleep 1
 
     if [[ $PRINTLOG = true ]];then
         echo "$invokeTime,$startTime,$endTime" >> $LOGFILE

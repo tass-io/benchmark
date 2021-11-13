@@ -1,15 +1,21 @@
 import os, time, csv, json, subprocess, random
 from itertools import repeat
+import gc
 
 default_test_conf = {
-    "payload_sizes": [0,1024,5120,10240,15360,20480,25600,30720,35840,40960,46080,51200],
-    "loop_times": 1,
-    "warm_up_times": 1,
-    "cold_times": 1
+    # 0,1024,8192,16384,30720,35840,65536,131072,524288,2097152,16777216,4194304,8388608, ,134217728
+    #"payload_sizes": [1046528,1048576],
+    "payload_sizes": [0,1024,8192,16384,30720],
+    "loop_times": 100,
+    "warm_up_times": 5,
+    "cold_times": 10
 }
 
 name = "bench-03-passp"
 param = '{"payload":""}'
+param_schema = {
+    "payload": ""
+}
 
 func_role = "arn:aws-cn:iam::648513213171:role/sail-serverless"
 func_arn = "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:"
@@ -18,13 +24,19 @@ stepfuncs_arn = "arn:aws-cn:states:cn-northwest-1:648513213171:stateMachine:"
 machine_path = './stepfunctions'
 errors = 0
 succ_status = 'SUCCEEDED'
+sample_pool = 'zyxwvutsrqponmlkjihgfedcba'
 
 def generate_payload(payload):
     global param
-    param = json.loads(param)
-    for i in repeat(None, payload):
-        param['payload'] = param['payload'].join(random.sample('zyxwvutsrqponmlkjihgfedcba', 1))
-    param = json.dumps(param)
+    if payload == 0:
+        param = '{"payload":""}'
+        return
+    param_s = param_schema.copy()
+    res = cmd('openssl rand -hex %d' %(payload/2))
+    res = res[:-1] # remove cmd tailling line break
+    param_s['payload'] = res
+    gc.collect()
+    param = json.dumps(param_s)
 
 def cold_start_release(): # sleep 15min for warm resource released
     time.sleep(900)
@@ -81,8 +93,8 @@ def create_machine():
         wait()
 
 def create_function():
-    cmd("aws lambda create-function --profile linxuyalun --runtime go1.x --handler main --memory-size 512 --role %s --zip-file fileb://code.zip --function-name %s1" %(func_role, name))    
-    cmd("aws lambda create-function --profile linxuyalun --runtime go1.x --handler main --memory-size 512 --role %s --zip-file fileb://code.zip --function-name %s2" %(func_role, name))    
+    cmd("aws lambda create-function --profile linxuyalun --runtime go1.x --handler main --memory-size 512 --role %s --zip-file fileb://code.zip --function-name %s1 --timeout 900" %(func_role, name))    
+    cmd("aws lambda create-function --profile linxuyalun --runtime go1.x --handler main --memory-size 512 --role %s --zip-file fileb://code.zip --function-name %s2 --timeout 900" %(func_role, name))    
     # wait until function created:
     while empty_str(cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep %s" %name)):
         wait()
@@ -94,16 +106,20 @@ def deploy(conf):
     create_function()
     create_machine()
     
-def req(payload_size):
-    global errors, param
-    generate_payload(payload_size)
+def req():
+    global errors
     benchTime = int(round(time.time() * 1000))
     if len(param) > 1 * 1024 * 32:
-        create_json_file(param, './input')
-        cmd("aws s3 cp ./input s3://param0 --profile linxuyalun")
-        param = '{"payload": "s3"}'
+        create_json_file(json.loads(param), './input')
+        cmd("aws s3 cp ./input s3://params/param0 --profile linxuyalun")
         cmd("rm ./input")
-    res = cmd("aws stepfunctions start-sync-execution --profile linxuyalun --state-machine-arn %s%s --input '%s'" %(stepfuncs_arn, name, param))
+        req_param = '{"payload": "s3"}'
+    else:
+        req_param = param
+    res = cmd("aws stepfunctions start-sync-execution --profile linxuyalun --state-machine-arn %s%s --input '%s'" %(stepfuncs_arn, name, req_param))
+    if len(param) > 1 * 1024 * 32:
+        cmd("aws s3 cp s3://params/param2 ./output  --profile linxuyalun")
+        cmd("rm ./output")
     endTime = int(round(time.time() * 1000))
     res = json.loads(res)
     startTime = 0
@@ -112,41 +128,37 @@ def req(payload_size):
         errors = errors + 1
         print(res['status'])
     else:
-        if param == '{"payload": "s3"}':
-            cmd("aws s3 cp s3://param2 ./output  --profile linxuyalun")
-            f = open('./output',)
-            output = json.load(f)
-            cmd("rm ./output")
-            f.close()
-        else:
-            output = json.loads(res['output'])
-        startTime = output['startTime']
+        startTime = json.loads(res['output'])['startTime']
     return benchTime, startTime, endTime, status
 
 def test(conf):  
     for payload_size in conf["payload_sizes"]:
-        # warm tests      
-        for i in repeat(None, conf['warm_up_times']):
-            req(payload_size)
-        resfile = open("./result%d.csv" %payload_size, 'w')
-        writer = csv.writer(resfile, delimiter=',')
-        writer.writerow(['benchTime', 'startTime', 'endTime'])
-        avgTime = 0
-        for i in repeat(None, conf['loop_times']):
-            benchTime, startTime, endTime, status = req(payload_size)
-            if status == succ_status:
-                writer.writerow([benchTime, startTime, endTime])
-                avgTime += endTime - benchTime
-        writer.writerow([avgTime / conf['loop_times']])
-        resfile.close()
-        # cold tests
-        resfile = open("./cold%d.csv" %payload_size, 'w')
+        generate_payload(payload_size)
+        # warm tests   
+        if conf['loop_times'] != 0:    
+            for i in repeat(None, conf['warm_up_times']):
+                req()
+            resfile = open("./result%d.csv" %payload_size, 'w')
+            writer = csv.writer(resfile, delimiter=',')
+            writer.writerow(['benchTime', 'startTime', 'endTime'])
+            avgTime = 0
+            for i in repeat(None, conf['loop_times']):
+                benchTime, startTime, endTime, status = req()
+                if status == succ_status:
+                    writer.writerow([benchTime, startTime, endTime])
+                    avgTime += endTime - benchTime
+            writer.writerow([avgTime / conf['loop_times']])
+            resfile.close()
+    generate_payload(0)
+    # cold tests
+    if conf['cold_times'] != 0:
+        resfile = open("./cold0.csv", 'w')
         writer = csv.writer(resfile, delimiter=',')
         writer.writerow(['benchTime', 'startTime', 'endTime'])
         cavgTime = 0
         for i in repeat(None, conf['cold_times']):
             cold_start_release()
-            benchTime, startTime, endTime, status = req(payload_size)
+            benchTime, startTime, endTime, status = req()
             if status == succ_status:
                 writer.writerow([benchTime, startTime, endTime])
                 cavgTime += endTime - benchTime
@@ -161,4 +173,12 @@ def do(input_conf):
     test(conf)
     print("ERRORS REQS: %d" %errors)
 
-do({})
+#do({})
+#payload_sizes=[0,1024,8192,16384,30720]
+#for payload in payload_sizes:
+#	generate_payload(payload)
+#	create_json_file(json.loads(param), './payload%d' %payload)
+	#cmd("aws s3 cp ./input s3://params/param0 --profile linxuyalun")
+generate_payload(8388608)
+create_json_file(json.loads(param), './input')
+cmd("aws s3 cp ./input s3://params/param0 --profile linxuyalun")

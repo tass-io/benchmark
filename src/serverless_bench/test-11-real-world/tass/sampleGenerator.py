@@ -9,12 +9,20 @@
 # See the Mulan PSL v1 for more details.
 #
 
-import random
+import random,subprocess
 import os
-import yaml
+import yaml,time
 
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'config.yaml')), yaml.FullLoader)
-SAMPLE_NUM = config['sample_number']
+SAMPLE_NUM = 30
+
+def wait():
+    time.sleep(10)
+
+def cmd(cmd):
+    print(cmd)
+    res = subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+    print(res)
+    return res
 
 workflow_path = './workflow/azure/workflow.yaml'
 function_path = './function/azure/function.yaml'
@@ -23,7 +31,7 @@ def create_yaml_file(object, filepath):
     if os.path.exists(filepath):
         os.remove(filepath)
     file = open(filepath, 'w')
-    yaml.dump(object, file)
+    yaml.dump(object, file, default_flow_style=False)
     file.close()
 
 # Generate a list of length according to the CDF of the chain length in an app, 
@@ -64,7 +72,6 @@ def parseChainLenCDFFile():
 def sampleActionGen(chainLenSampleList):
     sampleNum = len(chainLenSampleList)
     for sequenceID in range(sampleNum):
-        route_path = "/bench/04/azure/%d" %sequenceID
         workflow_name = 'bench-04-azure%d' %sequenceID
         # Create workflow
         workflow = {
@@ -88,7 +95,7 @@ def sampleActionGen(chainLenSampleList):
         }
         length = chainLenSampleList[sequenceID]
         for functionID in range(1, length + 1):
-            func_name = 'bench-04-azure%d-%d' %sequenceID %functionID
+            func_name = 'bench-04-azure%d-%d' %(sequenceID, functionID)
             # Fill in workflow
             elem = workflow_spec.copy()
             elem['name'] += str(functionID)
@@ -112,19 +119,19 @@ def sampleActionGen(chainLenSampleList):
                 }
             }
             create_yaml_file(function, function_path)
-            print(os.popen("tass-cli function create -c ./function/azure/code.zip -n " + func_name).read())
-            print(os.popen("kubectl apply -f " + function_path).read())
+            cmd("tass-cli function create -c ./function/azure/code.zip -n " + func_name)
+            cmd("kubectl apply -f " + function_path)
         del workflow['spec']['spec'][-1]['output']
         if length == 1:
             elem['role'] = 'orphan'
         else:
             workflow['spec']['spec'][0]['role'] = 'start'
             workflow['spec']['spec'][-1]['role'] = 'end'
-        # Apply workflow and create route
+        # Apply workflow
         create_yaml_file(workflow, workflow_path)
-        print(os.popen("kubectl apply -f " + workflow_path).read())
-        print(os.popen("tass-cli route create -p %s -n %s" %route_path %workflow_name).read())
+        cmd("kubectl apply -f " + workflow_path)
         print("Sample creation complete")
+    wait()
     return 
 
 

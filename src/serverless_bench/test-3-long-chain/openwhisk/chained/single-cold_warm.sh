@@ -117,6 +117,7 @@ if [[ $MODE = "warm" && $RUNONLY = false ]]; then
     do
         echo "The $i-th warmup..."
         wsk -i action invoke $ACTIONNAME --blocking --result $PARAMS > /dev/null
+        sleep 1
     done
     echo "Warm up complete"
     if [[ $WARMUPONLY = true ]]; then
@@ -145,6 +146,8 @@ do
     invokeTime=`date +%s%3N`
     times=`wsk -i action invoke $ACTIONNAME --blocking --result $PARAMS`
     endTime=`date +%s%3N`
+    # only 60 invokes in a minute
+    sleep 1
     echo "invokeTime: $invokeTime, endTime: $endTime" 
 
     latency=`expr $endTime - $invokeTime`

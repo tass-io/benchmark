@@ -2,9 +2,9 @@ import os, time, csv, json, subprocess
 from itertools import repeat
 
 default_test_conf = {
-    "loop_times": 1,
-    "warm_up_times": 1,
-    "cold_times": 1,
+    "loop_times": 100,
+    "warm_up_times": 5,
+    "cold_times": 0,
     "res_file": './result.csv',
     "cold_res_file": './cold.csv'
 }
@@ -75,34 +75,37 @@ def req():
     return benchTime, startTime, endTime, status_code
 
 def test(conf):  
-    # warm tests      
-    for i in repeat(None, conf['warm_up_times']):
-        req()
-    resfile = open(conf['res_file'], 'w')
-    writer = csv.writer(resfile, delimiter=',')
-    writer.writerow(['benchTime', 'startTime', 'endTime'])
-    avgTime = 0
-    for i in repeat(None, conf['loop_times']):
-        benchTime, startTime, endTime, status_code = req()
-        if status_code == succ_status_code:
-            writer.writerow([benchTime, startTime, endTime])
-            avgTime += endTime - benchTime
-    writer.writerow([avgTime / conf['loop_times']])
-    resfile.close()
+    # warm tests    
+    if conf['loop_times'] != 0:      
+        for i in repeat(None, conf['warm_up_times']):
+            req()
+        resfile = open(conf['res_file'], 'w')
+        writer = csv.writer(resfile, delimiter=',')
+        writer.writerow(['benchTime', 'startTime', 'endTime'])
+        avgTime = 0
+        for i in repeat(None, conf['loop_times']):
+            benchTime, startTime, endTime, status_code = req()
+            if status_code == succ_status_code:
+                writer.writerow([benchTime, startTime, endTime])
+                print(endTime - benchTime)
+                avgTime += endTime - benchTime
+        writer.writerow([avgTime / conf['loop_times']])
+        resfile.close()
     # cold tests
-    resfile = open(conf['cold_res_file'], 'w')
-    writer = csv.writer(resfile, delimiter=',')
-    writer.writerow(['benchTime', 'startTime', 'endTime'])
-    cavgTime = 0
-    for i in repeat(None, conf['cold_times']):
-        cold_start_release()
-        benchTime, startTime, endTime, status_code = req()
-        if status_code == succ_status_code:
-            writer.writerow([benchTime, startTime, endTime])
-            cavgTime += endTime - benchTime
-    writer.writerow([cavgTime / conf['cold_times']])
-    print("Cold Start Avg Time: %d ms (%d - %d) " %(cavgTime-avgTime, cavgTime, avgTime))
-    resfile.close()
+    if conf['cold_times'] != 0:
+        resfile = open(conf['cold_res_file'], 'w')
+        writer = csv.writer(resfile, delimiter=',')
+        writer.writerow(['benchTime', 'startTime', 'endTime'])
+        cavgTime = 0
+        for i in repeat(None, conf['cold_times']):
+            cold_start_release()
+            benchTime, startTime, endTime, status_code = req()
+            if status_code == succ_status_code:
+                writer.writerow([benchTime, startTime, endTime])
+                cavgTime += endTime - benchTime
+        writer.writerow([cavgTime / conf['cold_times']])
+        print("Cold Start Avg Time: %d ms (%d - %d) " %(cavgTime-avgTime, cavgTime, avgTime))
+        resfile.close()
 
 def do(input_conf):
     conf = default_test_conf.copy()

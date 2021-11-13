@@ -28,6 +28,10 @@ RESULT_FILENAME = config['result_file']
 SAMPLE_NUM = config['sample_number']
 MANUAL_SAMPLE_GENERATION = config['manual_sample_generation']
 
+chainLenSampleList = [1, 1, 6, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 20, 8, 1, 2, 5, 3, 1, 2, 1, 3, 1, 2, 1]
+avgIATArr = [86400.00,561.04,298.96,3927.27,293.88,77.63,4320.00,180.00,900.00,604.20,5760.00,43200.00,2700.00,28800.00,179.63,86400.00,4.52,286.09,1107.69,2.73,3600.00,86400.00,128.38,17280.00,86400.00,43200.00,1309.09,59.96,1515.79,10.00]
+cvArr = [0.00,2.58,0.47,0.00,0.01,0.00,0.05,0.24,0.00,0.75,1.62,3.23,0.49,19.99,2.46,11.96,3.05,1.60,1.62,3.43,0.00,0.80,0.67,11.42,0.00,0.36,3.00,3.10,0.00,0.79]
+
 # get random IAT according to the IAT csv
 def getRandAvgIAT():
     IATCDFFile = os.path.join(os.path.dirname(__file__),'CDFs','invokesCDF.csv')
@@ -57,8 +61,8 @@ def getRandomIAT(avgIAT, cv):
 # Invoke apps according to the IATSeries
 def Invoke(appName, results):
     
-    avgIAT = getRandAvgIAT()
-    cv = getRandCV()
+    avgIAT = avgIATArr[int(appName[14:])]
+    cv = cvArr[int(appName[14:])]
 
     result = {"avgIAT": avgIAT, "cv": cv, "latencies": []}
     print("Start to invoke App %s, avgIAT: %.2f, cv: %.2f" %(appName, avgIAT, cv))
@@ -108,7 +112,7 @@ def generateInvokes():
     if not MANUAL_SAMPLE_GENERATION:
         print("Generate the samples")
         import sampleGenerator
-        chainLenSampleList = sampleGenerator.chainLenSampleListGen(SAMPLE_NUM)
+        # chainLenSampleList = sampleGenerator.chainLenSampleListGen(SAMPLE_NUM)
         sampleGenerator.sampleActionGen(chainLenSampleList)
         print("Sample generation completes")
         print("-----------------------\n")
