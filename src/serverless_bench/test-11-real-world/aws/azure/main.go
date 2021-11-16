@@ -22,7 +22,8 @@ const (
 )
 
 type Param struct {
-	Sequence int `json:"sequence"`
+	Sequence int   `json:"sequence"`
+	Seed     int64 `json:"seed"`
 }
 
 type Output struct {
@@ -30,10 +31,12 @@ type Output struct {
 	StartTime int64 `json:"startTime"`
 	MemSize   int   `json:"memSize"`
 	ExecTime  int64 `json:"execTime"`
+	Seed      int64 `json:"seed"`
 }
 
 func HandleRequest(p Param) (Output, error) {
 	startTime := time.Now().UnixNano() / 1000000
+	rand.Seed(p.Seed + int64(p.Sequence))
 	var sequence int
 	if p.Sequence != 0 {
 		sequence = p.Sequence + 1
@@ -53,7 +56,7 @@ func HandleRequest(p Param) (Output, error) {
 	}
 	// Prevent Golang GC process
 	fmt.Print(memory[0])
-	res := Output{Sequence: sequence, StartTime: startTime, MemSize: memSize, ExecTime: execTime}
+	res := Output{Sequence: sequence, StartTime: startTime, MemSize: memSize, ExecTime: execTime, Seed: p.Seed}
 	return res, nil
 }
 
@@ -136,7 +139,6 @@ func getRandValueRefByCDF(filename string) (int, error) {
 			P = append(P, p)
 		}
 	}
-	rand.Seed(time.Now().Unix())
 	randP := rand.Float64()
 	randValue := values[binarySearch(P, randP)]
 	return randValue, nil
@@ -161,7 +163,6 @@ func binarySearch(nums []float64, target float64) int {
 
 func alu(times int64) int64 {
 	startTime := time.Now().UnixNano() / 1000000
-	rand.Seed(time.Now().Unix())
 	base := 10000
 	a := int64(10 + rand.Intn(90))
 	b := int64(10 + rand.Intn(90))

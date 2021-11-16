@@ -71,6 +71,7 @@ def Invoke(appName, results):
 # Directly call the target application, return the latency
 def callInvoke(appName):
     startTime = utils.getTime()
+    # TODO: USE SEQUENCE AND ID FOR RANDOM SEED
     res = requests.post(url='http://<TODO>/bench/04/azure/%s' %appName)
     res = res.json()
     endTime = utils.getTime()

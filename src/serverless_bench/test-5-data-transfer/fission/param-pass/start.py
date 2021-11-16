@@ -2,7 +2,7 @@ import os, requests, time, csv, random
 from itertools import repeat
 
 default_test_conf = {
-    "payload_sizes": [0,1024,5120,10240,15360,20480,25600,30720,35840,40960,46080,51200],
+    "payload_sizes": [0,1024,8192,16384,30720,35840,65536,131072,524288,1046528,1048576,2097152,4194304,8388608,16777216],
     "res_file": './result.csv'
 }
 

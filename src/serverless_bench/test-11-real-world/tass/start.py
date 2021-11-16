@@ -7,7 +7,7 @@ SECONDS_OF_A_DAY=3600 * 24
 MILLISECONDS_PER_SECOND = 1000
 
 
-TOTAL_RUN_TIME = 3600
+TOTAL_RUN_TIME = 86400
 RESULT_FILENAME = "invokeResult.csv"
 SAMPLE_NUM = 30
 MANUAL_SAMPLE_GENERATION = False
@@ -28,9 +28,6 @@ def cmd(cmd):
     res = subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
     print(res)
     return res
-
-def empty_str(str):
-    return len(str) == 0
 
 def clear_all():
     cmd("tass-cli function list | grep bench | awk '{print $2}' | xargs -n1 -I{} -P0 tass-cli function delete -n {}")
@@ -73,9 +70,14 @@ def getRandomIAT(avgIAT, cv):
 
 # Invoke apps according to the IATSeries
 def Invoke(appName, results):
+    id = int(appName[:])
     
-    avgIAT = avgIATArr[int(appName[:])]
-    cv = cvArr[int(appName[:])]
+    avgIAT = avgIATArr[id]
+    cv = cvArr[id]
+
+    param = {
+        "seed" : id << 10
+    }
 
     appName = 'bench-04-azure%s' %appName
 
@@ -87,7 +89,7 @@ def Invoke(appName, results):
     # Actually the while loop will be break inside
     while(testTime > 0):
         print("[Emulate] app %s invoke, time remains: %d s" %(appName, testTime))
-        latency, rs = callInvoke(appName)
+        latency, rs = callInvoke(appName, param)
         result['latencies'].append(latency)
         result['rss'].append(rs)
         
@@ -102,13 +104,26 @@ def Invoke(appName, results):
     results[appName] = result
     return
 
+def parseTime(timeStr):
+    res = -1
+    if timeStr[-2:] == 'µs':
+        res = int(float(timeStr[:-2]))
+    elif timeStr[-2:] == 'ms':
+        res = int(float(timeStr[:-2]) * 1000) 
+    elif timeStr[-1:] == 's':
+        res = int(float(timeStr[:-1]) * 1000 * 1000) 
+    elif timeStr[-1:] == 'm':
+        res = int(float(timeStr[:-1]) * 1000 * 1000 * 60) 
+    else:
+        raise ValueError('Not supported time end from %s' %(timeStr))
+    return res
+
 # Directly call the target application, return the latency
-def callInvoke(appName):
+def callInvoke(appName, param):
     host=cmd("kubectl get svc %s | grep %s | awk '{print $3}'" %(appName, appName))[:-1]
-    startTime = utils.getTime()
-    res = post_json('http://%s/v1/workflow/' %(host), {}, appName)
-    endTime = utils.getTime()
-    return endTime - startTime, res
+    res = json.loads(post_json('http://%s/v1/workflow/' %(host), param, appName))
+    execTime = parseTime(res['time'])
+    return execTime, res
 
 # main function
 def generateInvokes():
@@ -129,7 +144,7 @@ def generateInvokes():
         print("Sample generation completes")
         print("-----------------------\n")
     resultFile = open(RESULT_FILENAME, "w")
-    resultFile.write("appName,avgIAT,cv,latencies,rss\n")
+    resultFile.write("appName,avgIAT,cv,latencies(µs),rss\n")
     threads = []
     results = {}
 

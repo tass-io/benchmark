@@ -1,20 +1,30 @@
-import os, requests, time, csv, yaml, random, threading, subprocess, json
+import os, requests, time, csv, yaml, random, threading, subprocess, json, sys
 import utils
 
 name = "bench-04-azure"
 
+func_arn = "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:"
 stepfuncs_arn = "arn:aws-cn:states:cn-northwest-1:648513213171:stateMachine:"
+log_name_prefix = '/aws/vendedlogs/states/'
 errors = 0
 succ_status = 'SUCCEEDED'
+mutex = threading.Lock()
 
 def wait():
     time.sleep(6)
 
+def sscmd(cmd):
+    return subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+
 def cmd(cmd):
     print(cmd)
-    res = subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+    res = sscmd(cmd)
     print(res)
     return res
+
+def scmd(cmd):
+    print(cmd)
+    return sscmd(cmd)
 
 # Constant parameters
 SECONDS_OF_A_DAY=3600 * 24
@@ -60,44 +70,90 @@ def getRandomIAT(avgIAT, cv):
 
 # Invoke apps according to the IATSeries
 def Invoke(appName, results):
-    
-    avgIAT = avgIATArr[int(appName[14:])]
-    cv = cvArr[int(appName[14:])]
 
-    result = {"avgIAT": avgIAT, "cv": cv, "latencies": []}
+    id = int(appName[len(name):])
+    param = json.dumps({
+        "seed": id << 10
+    })
+    
+    avgIAT = avgIATArr[id]
+    cv = cvArr[id]
+
+    result = {"avgIAT": avgIAT, "cv": cv, "invokes": []}
     print("Start to invoke App %s, avgIAT: %.2f, cv: %.2f" %(appName, avgIAT, cv))
 
     testTime = TOTAL_RUN_TIME
     
     # Actually the while loop will be break inside
     while(testTime > 0):
+        startTime = utils.getTime()
         print("[Emulate] app %s invoke, time remains: %d s" %(appName, testTime))
-        latency = callInvoke(appName)
-        result['latencies'].append(latency)
+        invoke = callInvoke(appName, param)
+        result['invokes'].append(invoke)
         
         IAT = getRandomIAT(avgIAT, cv)
-        testTime -= (IAT + int(latency / MILLISECONDS_PER_SECOND))
+        endTime = utils.getTime()
+        testTime -= (IAT + int(endTime - startTime / MILLISECONDS_PER_SECOND))
         if testTime < 0:
             break
         else:
             time.sleep(IAT)
+    result['id'] = id
     print("App %s finish testing" %(appName))
-    
+
+    mutex.acquire()
     results[appName] = result
+    mutex.release()
     return
 
 # Directly call the target application, return the latency
-def callInvoke(appName):
+def callInvoke(appName, param):
     global errors
-    startTime = utils.getTime()
-    res = cmd("aws stepfunctions start-sync-execution --profile linxuyalun --state-machine-arn %s%s" %(stepfuncs_arn, appName))
-    res = json.loads(res)
-    endTime = utils.getTime()
-    status = res['status']
-    if status != succ_status:
-        errors = errors + 1
-        print(res['status'])
-    return endTime - startTime
+    try:
+        res = json.loads(cmd("aws stepfunctions start-sync-execution --profile linxuyalun --state-machine-arn %s%s --input '%s'" %(stepfuncs_arn, appName, param)))
+        status = res['status']
+        if status != succ_status:
+            errors = errors + 1
+            print(status)
+            return {"status": status}
+        else:
+            execArn = res['executionArn']
+            return {"status": status, "execArn": execArn}
+    except:
+        return {"status": "FAILED"}
+
+def get_res_from_log(exec_arn, id):
+    # assure logs are completed logged
+    all_logged = False
+    while not all_logged:
+        try:
+            res = json.loads(sscmd("""aws logs filter-log-events --profile linxuyalun --log-group-name '%s%s%d' --filter-pattern '{ $.execution_arn = "%s" && ( $.type = "ExecutionStarted" || $.type = "ExecutionSucceeded" ) }'""" %(log_name_prefix, name, id, exec_arn)))
+            if len(res['events']) != 2:
+                raise Exception("len(events) is %d rather than 2" %(len(res['events'])))
+            all_logged = True
+            break
+        except:
+            print("waiting for logging finished get err:", sys.exc_info()[0])
+            wait()
+    # get execution time of the whole stepfunctions
+    res = json.loads(scmd("""aws logs filter-log-events --profile linxuyalun --log-group-name '%s%s%d' --filter-pattern '{ $.execution_arn = "%s" && ( $.type = "ExecutionStarted" || $.type = "ExecutionSucceeded" ) }'""" %(log_name_prefix, name, id, exec_arn)))
+    for event in res['events']: event['message'] = json.loads(event['message'])
+    res['events'].sort(key=lambda event: int(event['message']['id']))
+    times = list(map(lambda event: int(event['message']['event_timestamp']), res['events']))
+    execTime = times[1] - times[0]
+    # get each function execution time and the function path 
+    res = json.loads(scmd("""aws logs filter-log-events --profile linxuyalun --log-group-name '%s%s%d' --filter-pattern '{ $.execution_arn = "%s" && ( $.type = "LambdaFunctionScheduled" || $.type = "LambdaFunctionSucceeded" ) }'""" %(log_name_prefix, name, id, exec_arn)))
+    for event in res['events']: event['message'] = json.loads(event['message'])
+    res['events'].sort(key=lambda event: int(event['message']['id']))
+    times = list(map(lambda event: int(event['message']['event_timestamp']), res['events']))
+    funcTimes = []
+    last = -1
+    for t in times:
+        if last != -1:
+            funcTimes.append(t-last) 
+        last = t
+    funcPath = list(map(lambda sevent: sevent['message']['details']['resource'][len(func_arn):], filter(lambda event: event['message']['type'] == 'LambdaFunctionScheduled', res['events'])))
+    return {"execTime": execTime, "funcTimes": funcTimes, "funcPath": funcPath}
 
 # main function
 def generateInvokes():
@@ -117,7 +173,7 @@ def generateInvokes():
         print("Sample generation completes")
         print("-----------------------\n")
     resultFile = open(RESULT_FILENAME, "w")
-    resultFile.write("appName,avgIAT,cv,latencies\n")
+    resultFile.write("appName@avgIAT@cv@latencies\n")
     threads = []
     results = {}
 
@@ -134,7 +190,13 @@ def generateInvokes():
         threads[i].join()   
 
     for appName, result in results.items():
-        resultFile.write("%s,%.2f,%.2f,%s\n" %(appName, result['avgIAT'], result['cv'], str(result['latencies'])[1:-1]))
+        result['latencies'] = []
+        for invoke in result['invokes']:
+            if invoke['status'] == succ_status:
+                invoke.update(get_res_from_log(invoke['execArn'], result['id']))
+            else:
+                invoke['execTime'] = "failed"
+        resultFile.write("%s@%.2f@%.2f@%s\n" %(appName, result['avgIAT'], result['cv'], str(list(map(lambda invoke: invoke['execTime'], result['invokes']))[1:-1])))
     
     resultFile.close()
     testEndTime = utils.getTime()

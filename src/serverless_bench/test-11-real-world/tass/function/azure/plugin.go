@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -29,12 +30,19 @@ const (
 // nolint: unused
 func Handler(parameters map[string]interface{}) (map[string]interface{}, error) {
 	startTime := time.Now().UnixNano() / 1000000
-	var sequence int
+	var sequence, seed int
+	if sd, ok := parameters["seed"].(float64); !ok {
+		return nil, errors.New("Seed param not found")
+	} else {
+		seed = int(sd) + 1
+	}
 	if sq, ok := parameters["sequence"].(float64); !ok {
 		sequence = 0
 	} else {
 		sequence = int(sq) + 1
 	}
+
+	rand.Seed(int64(sequence + seed))
 
 	mmStartTime := time.Now().UnixNano() / 1000000
 	memSize := mallocRandMem()
@@ -44,7 +52,7 @@ func Handler(parameters map[string]interface{}) (map[string]interface{}, error) 
 	execTime := execRandTime(mmExecTime)
 	// Prevent Golang GC process
 	fmt.Print(memory[0])
-	return map[string]interface{}{"sequence": sequence, "startTime": startTime, "memSize": memSize, "execTime": execTime}, nil
+	return map[string]interface{}{"sequence": sequence, "startTime": startTime, "memSize": memSize, "execTime": execTime, "seed": seed}, nil
 }
 
 func mallocRandMem() int {
@@ -115,7 +123,6 @@ func getRandValueRefByCDF(filename string) int {
 			P = append(P, p)
 		}
 	}
-	rand.Seed(time.Now().Unix())
 	randP := rand.Float64()
 	randValue := values[binarySearch(P, randP)]
 	return randValue

@@ -31,6 +31,7 @@ type param struct {
 	Sequence int `json:"sequence"`
 }
 
+// TODO: USE SEQUENCE AND ID FOR RANDOM SEED
 // nolint: unused
 func Handler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now().UnixNano() / 1000000
@@ -70,6 +71,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Prevent Golang GC process
 	fmt.Print(memory[0])
+	// TODO: return seed param
 	res := map[string]interface{}{"sequence": sequence, "startTime": startTime, "memSize": memSize, "execTime": execTime}
 	rb, err := json.Marshal(res)
 	if err != nil {

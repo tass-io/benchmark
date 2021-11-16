@@ -9,7 +9,7 @@
 # See the Mulan PSL v1 for more details.
 #
 
-import random
+import random, json
 import utils
 import time
 import threading
@@ -21,11 +21,16 @@ MILLISECONDS_PER_SECOND = 1000
 
 # Configuration
 # Warning:: SAMPLE_NUM needs to be modified in sampleGenerator.py too
-TOTAL_RUN_TIME = 3600
+TOTAL_RUN_TIME = 86400
 RESULT_FILENAME = "invokeResult.csv"
 SAMPLE_NUM = 30
 MANUAL_SAMPLE_GENERATION = False
-chainLenSampleList = []
+
+name = "app"
+
+chainLenSampleList = [1, 1, 6, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 20, 8, 1, 2, 5, 3, 1, 2, 1, 3, 1, 2, 1]
+avgIATArr = [86400.00,561.04,298.96,3927.27,293.88,77.63,4320.00,180.00,900.00,604.20,5760.00,43200.00,2700.00,28800.00,179.63,86400.00,4.52,286.09,1107.69,2.73,3600.00,86400.00,128.38,17280.00,86400.00,43200.00,1309.09,59.96,1515.79,10.00]
+cvArr = [0.00,2.58,0.47,0.00,0.01,0.00,0.05,0.24,0.00,0.75,1.62,3.23,0.49,19.99,2.46,11.96,3.05,1.60,1.62,3.43,0.00,0.80,0.67,11.42,0.00,0.36,3.00,3.10,0.00,0.79]
 
 # get random IAT according to the IAT csv
 def getRandAvgIAT():
@@ -55,9 +60,12 @@ def getRandomIAT(avgIAT, cv):
 
 # Invoke apps according to the IATSeries
 def Invoke(appName, results):
-    
-    avgIAT = getRandAvgIAT()
-    cv = getRandCV()
+    id = int(appName[len(name):])
+
+    avgIAT = avgIATArr[id]
+    cv = cvArr[id]
+
+    param = str(id << 10)
 
     result = {"avgIAT": avgIAT, "cv": cv, "latencies": []}
     print("Start to invoke App %s, avgIAT: %.2f, cv: %.2f" %(appName, avgIAT, cv))
@@ -67,7 +75,7 @@ def Invoke(appName, results):
     # Actually the while loop will be break inside
     while(testTime > 0):
         print("[Emulate] app %s invoke, time remains: %d s" %(appName, testTime))
-        latency = callInvoke(appName)
+        latency = callInvoke(appName, param)
         result['latencies'].append(latency)
         
         IAT = getRandomIAT(avgIAT, cv)
@@ -82,8 +90,8 @@ def Invoke(appName, results):
     return
 
 # Directly call the target application, return the latency
-def callInvoke(appName):
-    cmd = "wsk -i action invoke %s --blocking --result" %appName
+def callInvoke(appName, param):
+    cmd = "wsk -i action invoke %s --blocking --result --param seed %s" %(appName, param)
     startTime = utils.getTime()
     r = os.popen(cmd)
     r.read()
@@ -105,7 +113,7 @@ def generateInvokes():
         global chainLenSampleList
         print("Generate the samples")
         import sampleGenerator
-        chainLenSampleList = sampleGenerator.chainLenSampleListGen(SAMPLE_NUM)
+        #chainLenSampleList = sampleGenerator.chainLenSampleListGen(SAMPLE_NUM)
         sampleGenerator.sampleActionGen(chainLenSampleList)
         print("Sample generation completes")
         print("-----------------------\n")
@@ -116,7 +124,7 @@ def generateInvokes():
 
     testStartTime = utils.getTime()
     for i in range(SAMPLE_NUM):
-        appName = "app%d" %i
+        appName = "%s%d" %(name, i)
         t = threading.Thread(target=Invoke,args=(appName,results))
         threads.append(t)
 

@@ -2,7 +2,7 @@ import os, time, csv, random, subprocess, json, gc
 from itertools import repeat
 
 default_test_conf = {
-    "payload_sizes": [0,1024,8192,16384,30720,35840,65536,131072,524288,1046528,1048576,2097152,16777216,134217728],
+    "payload_sizes": [0,1024,8192,16384,30720,35840,65536,131072,524288,1046528,1048576,2097152,4194304,8388608,16777216],
     "loop_times": 100,
     "warm_up_times": 5,
     "cold_times": 10
@@ -29,9 +29,6 @@ def cmd(cmd):
     res = subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
     print(res)
     return res
-
-def empty_str(str):
-    return len(str) == 0
 
 def clear_all():
     cmd("tass-cli function list | grep bench | awk '{print $2}' | xargs -n1 -I{} -P0 tass-cli function delete -n {}")
@@ -74,13 +71,26 @@ def generate_payload(payload):
     param = json.dumps(param_s)
     gc.collect()
 
+def parseTime(timeStr):
+    res = -1
+    if timeStr[-2:] == 'µs':
+        res = int(float(timeStr[:-2]))
+    elif timeStr[-2:] == 'ms':
+        res = int(float(timeStr[:-2]) * 1000) 
+    elif timeStr[-1:] == 's':
+        res = int(float(timeStr[:-1]) * 1000 * 1000) 
+    elif timeStr[-1:] == 'm':
+        res = int(float(timeStr[:-1]) * 1000 * 1000 * 60) 
+    else:
+        raise ValueError('Not supported time end from %s' %(timeStr))
+    return res
+
 def req():
     host=cmd("kubectl get svc | grep bench-03-passp | awk '{print $3}'")[:-1]
-    benchTime = int(round(time.time() * 1000))
     create_json_file(json.loads(param), './input.json')
-    res = post_json_file('http://%s/v1/workflow/' %host, "input.json")
-    endTime = int(round(time.time() * 1000))
-    return benchTime, endTime, len(res)
+    res = json.loads(post_json_file('http://%s/v1/workflow/' %host, "input.json"))
+    execTime = parseTime(res['time'])
+    return execTime, len(res)
 
 def test(conf):
     for payload_size in conf["payload_sizes"]:
@@ -91,12 +101,12 @@ def test(conf):
                 req()
             resfile = open("./result%d.csv" %payload_size, 'w')
             writer = csv.writer(resfile, delimiter=',')
-            writer.writerow(['benchTime', 'endTime', 'len(res)'])
+            writer.writerow(['execTime(µs)', 'len(res)'])
             avgTime = 0
             for i in repeat(None, conf['loop_times']):
-                benchTime, endTime, res = req()
-                avgTime += endTime - benchTime
-                writer.writerow([benchTime, endTime, res])
+                execTime, res = req()
+                avgTime += execTime
+                writer.writerow([execTime, res])
             writer.writerow([avgTime / conf['loop_times']])
             resfile.close()
     generate_payload(0)
@@ -104,15 +114,15 @@ def test(conf):
     if conf['cold_times'] != 0:
         resfile = open("./cold0.csv", 'w')
         writer = csv.writer(resfile, delimiter=',')
-        writer.writerow(['benchTime', 'endTime', 'len(res)'])
+        writer.writerow(['execTime(µs)', 'len(res)'])
         cavgTime = 0
         for i in repeat(None, conf['cold_times']):
             cold_start_release()
-            benchTime, endTime, res = req()
-            cavgTime += endTime - benchTime
-            writer.writerow([benchTime, endTime, res])
+            execTime, res = req()
+            cavgTime += execTime
+            writer.writerow([execTime, res])
         writer.writerow([cavgTime / conf['cold_times']])
-        print("Cold Start Avg Time: %d ms (%d - %d) " %(cavgTime-avgTime, cavgTime, avgTime))
+        print("Cold Start Avg Time: %d µs (%d - %d) " %(cavgTime-avgTime, cavgTime, avgTime))
         resfile.close()
 
 def do(input_conf):

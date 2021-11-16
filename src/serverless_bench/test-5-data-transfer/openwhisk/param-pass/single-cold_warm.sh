@@ -11,7 +11,7 @@
 # See the Mulan PSL v1 for more details.
 #
 
-Sizesdic=(1048576 2097152 16777216 134217728)
+Sizesdic=(1048576 2097152 4194304 8388608 16777216)
 #Sizesdic=(0)
 
 ./action_update.sh

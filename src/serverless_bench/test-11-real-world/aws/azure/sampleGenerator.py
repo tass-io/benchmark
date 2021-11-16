@@ -19,25 +19,49 @@ func_role = "arn:aws-cn:iam::648513213171:role/sail-serverless"
 func_arn = "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:"
 stepfuncs_role = "arn:aws-cn:iam::648513213171:role/sail-step-functions"
 stepfuncs_arn = "arn:aws-cn:states:cn-northwest-1:648513213171:stateMachine:"
+log_arn = 'arn:aws-cn:logs:cn-northwest-1:648513213171:log-group:'
+log_name_prefix = '/aws/vendedlogs/states/'
+log_suffix = ':*'
+stepfuncs_log_tepl = {
+    "level": "ALL",
+    "includeExecutionData": False,
+    "destinations": [
+        {
+            "cloudWatchLogsLogGroup": {
+                "logGroupArn": ""
+            }
+        }
+    ]
+}
 machine_path = './stepfunctions'
 
 def wait():
     time.sleep(6)
 
+def sscmd(cmd):
+    return subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+
 def cmd(cmd):
     print(cmd)
-    res = subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+    res = sscmd(cmd)
     print(res)
     return res
 
-def empty_str(str):
-    return len(str) == 0
+def scmd(cmd):
+    print(cmd)
+    return sscmd(cmd)
+
+def empty_cmd(cmd):
+    return len(sscmd(cmd)) == 0
     
 def clear_all():
-    while not empty_str(cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s" %name)):
+    sscmd("rm -rf *.csv")
+    for sequenceID in range(SAMPLE_NUM):
+        sscmd("aws logs --profile linxuyalun delete-log-group --log-group-name %s%s%d" %(log_name_prefix, name, sequenceID))
+    while not empty_cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s" %name):
         cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s | cut -d \\\" -f 4 | xargs -n1 -P0 -I{} aws lambda --profile linxuyalun delete-function --function-name {}" %name)
         wait()
-    while not empty_str(cmd("aws stepfunctions list-state-machines --profile linxuyalun --max-items 200 | grep \\\"name\\\" | grep %s" %name)):
+    while not empty_cmd("aws stepfunctions list-state-machines --profile linxuyalun --max-items 200 | grep \\\"name\\\" | grep %s" %name):
         cmd("aws stepfunctions list-state-machines --profile linxuyalun --max-items 200 | grep \\\"name\\\" | grep %s | cut -d \\\" -f 4 | xargs -n1 -P0 -I{} aws stepfunctions delete-state-machine --profile linxuyalun --state-machine-arn %s{}" %(name, stepfuncs_arn))
         wait()
 
@@ -111,13 +135,16 @@ def sampleActionGen(chainLenSampleList):
             # Create and apply functions
             cmd("aws lambda create-function --profile linxuyalun --runtime go1.x --handler main --memory-size 512 --timeout 900 --role %s --zip-file fileb://code.zip --function-name %s%d-%d" %(func_role, name, sequenceID, functionID))
             # wait until function created:
-            while empty_str(cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep %s%d-%d" %(name, sequenceID, functionID))):
+            while empty_cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep %s%d-%d" %(name, sequenceID, functionID)):
                 wait()
         # Create stepfunction machine and apply it
         create_json_file(machine, machine_path)
-        cmd("aws stepfunctions create-state-machine --profile linxuyalun --role-arn %s --definition file://stepfunctions --type EXPRESS --name %s%d" %(stepfuncs_role, name, sequenceID))
+        stepfuncs_log_conf = stepfuncs_log_tepl.copy()
+        stepfuncs_log_conf['destinations'][0]['cloudWatchLogsLogGroup']['logGroupArn'] = "%s%s%s%d%s" %(log_arn, log_name_prefix, name, sequenceID, log_suffix)
+        cmd("aws logs --profile linxuyalun create-log-group --log-group-name %s%s%d" %(log_name_prefix, name, sequenceID))
+        cmd("aws stepfunctions create-state-machine --logging-configuration '%s' --profile linxuyalun --role-arn %s --definition file://stepfunctions --type EXPRESS --name %s%d" %(json.dumps(stepfuncs_log_conf), stepfuncs_role, name, sequenceID))
         # wait until machine created:
-        while empty_str(cmd("aws stepfunctions list-state-machines --profile linxuyalun --max-items 200 | grep %s%d" %(name,sequenceID))):
+        while empty_cmd("aws stepfunctions list-state-machines --profile linxuyalun --max-items 200 | grep %s%d" %(name,sequenceID)):
             wait()
         print("Sample %d creation complete" %sequenceID)
     return 

@@ -34,9 +34,6 @@ def post_json(url, data):
     }
     return cmd("curl --connect-timeout 900 -s -S --header \"Content-Type: application/json\" --request POST --data-raw \'%s\' \"%s\"" %(json.dumps(data), url))
 
-def empty_str(str):
-    return len(str) == 0
-
 def deploy():
     clear_all()
     # cli 部署函数
@@ -44,15 +41,28 @@ def deploy():
     # 部署各种 yaml 文件
     cmd("kubectl apply -f ./function/hello/function.yaml -f ./workflow/hello/workflow.yaml")
     wait()
-    
+
+def parseTime(timeStr):
+    res = -1
+    if timeStr[-2:] == 'µs':
+        res = int(float(timeStr[:-2]))
+    elif timeStr[-2:] == 'ms':
+        res = int(float(timeStr[:-2]) * 1000) 
+    elif timeStr[-1:] == 's':
+        res = int(float(timeStr[:-1]) * 1000 * 1000) 
+    elif timeStr[-1:] == 'm':
+        res = int(float(timeStr[:-1]) * 1000 * 1000 * 60) 
+    else:
+        raise ValueError('Not supported time end from %s' %(timeStr))
+    return res
+
 def req():
     host=cmd("kubectl get svc | grep bench-01-hello | awk '{print $3}'")[:-1]
-    benchTime = int(round(time.time() * 1000))
-    res = post_json('http://%s/v1/workflow/' %host, {
+    res = json.loads(post_json('http://%s/v1/workflow/' %host, {
         'name': 'tass-benchmark' 
-    })
-    endTime = int(round(time.time() * 1000))
-    return benchTime, endTime, res
+    }))
+    execTime = parseTime(res["time"])
+    return execTime, res
 
 def test(conf):
     # warm tests
@@ -61,27 +71,27 @@ def test(conf):
             req()
         csvfile = open(conf['res_file'], 'w')
         writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['benchTime', 'endtime', 'res'])
+        writer.writerow(['execTime(µs)', 'res'])
         avgTime=0
         for i in repeat(None, conf['loop_times']):
-            benchTime, endTime, res = req()
-            avgTime += endTime - benchTime
-            writer.writerow([benchTime, endTime, res])
+            execTime, res = req()
+            avgTime += execTime
+            writer.writerow([execTime, res])
         writer.writerow([avgTime / conf['loop_times']])
         csvfile.close()
     # cold tests
     if conf['cold_times'] != 0:
         resfile = open(conf['cold_res_file'], 'w')
         writer = csv.writer(resfile, delimiter=',')
-        writer.writerow(['benchTime', 'endTime', 'res'])
+        writer.writerow(['execTime(µs)', 'res'])
         cavgTime = 0
         for i in repeat(None, conf['cold_times']):
             cold_start_release()
-            benchTime, endTime, res = req()
-            cavgTime += endTime - benchTime
-            writer.writerow([benchTime, endTime, res])
+            execTime, res = req()
+            cavgTime += execTime
+            writer.writerow([execTime, res])
         writer.writerow([cavgTime / conf['cold_times']])
-        print("Cold Start Avg Time: %d ms (%d - %d) " %(cavgTime-avgTime, cavgTime, avgTime))
+        print("Cold Start Avg Time: %d µs (%d - %d) " %(cavgTime-avgTime, cavgTime, avgTime))
         resfile.close()
 
 def do(input_conf):

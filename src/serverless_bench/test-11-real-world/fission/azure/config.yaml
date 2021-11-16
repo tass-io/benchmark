@@ -5,7 +5,7 @@ sample_number: 3
 result_file: "invokeResult.csv"
 
 # The total time for testing
-total_run_time: 3600
+total_run_time: 86400
 
 # If true, RealWorldAppEmulation.py will automatically generate random samples
 # We suggest that generate the samples manually or automatically generate samples only once
