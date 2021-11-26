@@ -1,0 +1,111 @@
+{
+  "Comment": "bench-07-social",
+  "StartAt": "bench-07-social-nginx",
+  "States": {
+    "bench-07-social-nginx": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-nginx",
+      "Next": "bench-07-social-nginx-choice"
+    },
+    "bench-07-social-nginx-choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.next",
+          "StringEquals": "search",
+          "Next": "bench-07-social-search"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "make-post",
+          "Next": "bench-07-social-make-post"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "read-timeline",
+          "Next": "bench-07-social-read-timeline"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "follow",
+          "Next": "bench-07-social-follow"
+        }
+      ]
+    },
+    "bench-07-social-search": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-search",
+      "End": true
+    },
+    "bench-07-social-make-post": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-make-post",
+      "Next": "bench-07-social-make-post-choice"
+    },
+    "bench-07-social-make-post-choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.next",
+          "StringEquals": "text",
+          "Next": "bench-07-social-text"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "media",
+          "Next": "bench-07-social-media"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "user-tag",
+          "Next": "bench-07-social-user-tag"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "url-shortener",
+          "Next": "bench-07-social-url-shortener"
+        }
+      ]
+    },
+    "bench-07-social-read-timeline": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-read-timeline",
+      "Next": "bench-07-social-post-storage"
+    },
+    "bench-07-social-follow": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-follow",
+      "End": true
+    },
+    "bench-07-social-text": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-text",
+      "Next": "bench-07-social-compose-post"
+    },
+    "bench-07-social-media": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-media",
+      "Next": "bench-07-social-compose-post"
+    },
+    "bench-07-social-user-tag": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-user-tag",
+      "Next": "bench-07-social-compose-post"
+    },
+    "bench-07-social-url-shortener": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-url-shortener",
+      "Next": "bench-07-social-compose-post"
+    },
+    "bench-07-social-compose-post": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-compose-post",
+      "Next": "bench-07-social-post-storage"
+    },
+    "bench-07-social-post-storage": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-07-social-post-storage",
+      "End": true
+    }
+  }
+}

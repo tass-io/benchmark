@@ -1,0 +1,46 @@
+{
+  "Comment": "bench-05-hotel",
+  "StartAt": "bench-05-hotel-nginx",
+  "States": {
+    "bench-05-hotel-nginx": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-05-hotel-nginx",
+      "Next": "bench-05-hotel-nginx-choice"
+    },
+    "bench-05-hotel-nginx-choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.next",
+          "StringEquals": "check-reservation",
+          "Next": "bench-05-hotel-check-reservation"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "make-reservation",
+          "Next": "bench-05-hotel-make-reservation"
+        }
+      ]
+    },
+    "bench-05-hotel-check-reservation": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-05-hotel-check-reservation",
+      "Next": "bench-05-hotel-get-profiles"
+    },
+    "bench-05-hotel-make-reservation": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-05-hotel-make-reservation",
+      "End": true
+    },
+    "bench-05-hotel-get-profiles": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-05-hotel-get-profiles",
+      "Next": "bench-05-hotel-search"
+    },
+    "bench-05-hotel-search": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-05-hotel-search",
+      "End": true
+    }
+  }
+}

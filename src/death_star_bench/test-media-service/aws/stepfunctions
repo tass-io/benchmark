@@ -1,0 +1,106 @@
+{
+  "Comment": "bench-06-media",
+  "StartAt": "bench-06-media-nginx",
+  "States": {
+    "bench-06-media-nginx": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-nginx",
+      "Next": "bench-06-media-id"
+    },
+    "bench-06-media-id": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-id",
+      "Next": "bench-06-media-id-choice"
+    },
+    "bench-06-media-id-choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.next",
+          "StringEquals": "movie-id",
+          "Next": "bench-06-media-movie-id"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "text-service",
+          "Next": "bench-06-media-text-service"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "user-service",
+          "Next": "bench-06-media-user-service"
+        }
+      ]
+    },
+    "bench-06-media-movie-id": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-movie-id",
+      "Next": "bench-06-media-movie-id-choice"
+    },
+    "bench-06-media-movie-id-choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.next",
+          "StringEquals": "rating",
+          "Next": "bench-06-media-rating"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "compose-review",
+          "Next": "bench-06-media-compose-review"
+        }
+      ]
+    },
+    "bench-06-media-text-service": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-text-service",
+      "Next": "bench-06-media-compose-review"
+    },
+    "bench-06-media-user-service": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-user-service",
+      "Next": "bench-06-media-compose-review"
+    },
+    "bench-06-media-rating": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-rating",
+      "End": true
+    },
+    "bench-06-media-compose-review": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-compose-review",
+      "Next": "bench-06-media-compose-review-choice"
+    },
+    "bench-06-media-compose-review-choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.next",
+          "StringEquals": "movie-review",
+          "Next": "bench-06-media-movie-review"
+        },
+        {
+          "Variable": "$.next",
+          "StringEquals": "user-review",
+          "Next": "bench-06-media-user-review"
+        }
+      ]
+    },
+    "bench-06-media-movie-review": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-movie-review",
+      "Next": "bench-06-media-review-storage"
+    },
+    "bench-06-media-user-review": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-user-review",
+      "Next": "bench-06-media-review-storage"
+    },
+    "bench-06-media-review-storage": {
+      "Type": "Task",
+      "Resource": "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:bench-06-media-review-storage",
+      "End": true
+    }
+  }
+}
