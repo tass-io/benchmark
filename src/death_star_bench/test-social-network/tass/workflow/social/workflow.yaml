@@ -1,0 +1,152 @@
+# A swith function workflow to mock death star benchmark
+
+apiVersion: serverless.tass.io/v1alpha1
+kind: Workflow
+metadata:
+  namespace: default
+  name: bench-07-social
+spec:
+  spec:
+  - name: nginx
+    function: bench-07-social-nginx
+    statement: switch
+    role: start
+    conditions:
+    - name: root
+      type: string
+      operator: eq
+      target: $.next
+      comparison: search
+      destination:
+        isTrue:
+          flows:
+          - search
+        isFalse:
+          conditions:
+          - make-post
+    - name: make-post
+      type: string
+      operator: eq
+      target: $.next
+      comparison: make-post
+      destination:
+        isTrue:
+          flows:
+          - make-post
+        isFalse:
+          conditions:
+          - read-timeline
+    - name: read-timeline
+      type: string
+      operator: eq
+      target: $.next
+      comparison: read-timeline
+      destination:
+        isTrue:
+          flows:
+          - read-timeline
+        isFalse:
+          conditions:
+          - follow
+    - name: follow
+      type: string
+      operator: eq
+      target: $.next
+      comparison: follow
+      destination:
+        isTrue:
+          flows:
+          - follow
+  - name: search
+    function: bench-07-social-search
+    statement: direct
+    role: end
+  - name: make-post
+    function: bench-07-social-make-post
+    statement: switch
+    conditions:
+    - name: root
+      type: string
+      operator: eq
+      target: $.next
+      comparison: text
+      destination:
+        isTrue:
+          flows:
+          - text
+        isFalse:
+          conditions:
+          - media
+    - name: media
+      type: string
+      operator: eq
+      target: $.next
+      comparison: media
+      destination:
+        isTrue:
+          flows:
+          - media
+        isFalse:
+          conditions:
+          - user-tag
+    - name: user-tag
+      type: string
+      operator: eq
+      target: $.next
+      comparison: user-tag
+      destination:
+        isTrue:
+          flows:
+          - user-tag
+        isFalse:
+          conditions:
+          - url-shortener
+    - name: url-shortener
+      type: string
+      operator: eq
+      target: $.next
+      comparison: url-shortener
+      destination:
+        isTrue:
+          flows:
+          - url-shortener
+  - name: read-timeline
+    function: bench-07-social-read-timeline
+    statement: direct
+    outputs:
+    - post-storage
+  - name: follow
+    function: bench-07-social-follow
+    statement: direct
+    role: end
+  - name: text
+    function: bench-07-social-text
+    statement: direct
+    outputs:
+    - compose-post
+  - name: media
+    function: bench-07-social-media
+    statement: direct
+    outputs:
+    - compose-post
+  - name: user-tag
+    function: bench-07-social-user-tag
+    statement: direct
+    outputs:
+    - compose-post
+  - name: url-shortener
+    function: bench-07-social-url-shortener
+    statement: direct
+    outputs:
+    - compose-post
+  - name: compose-post
+    function: bench-07-social-compose-post
+    statement: direct
+    outputs:
+    - post-storage
+  - name: post-storage
+    function: bench-07-social-post-storage
+    statement: direct
+    role: end
+  
+  

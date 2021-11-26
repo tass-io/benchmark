@@ -1,0 +1,10 @@
+apiVersion: serverless.tass.io/v1alpha1
+kind: Function
+metadata:
+  name: bench-05-hotel-check-reservation
+  namespace: default
+spec:
+  environment: Golang
+  resource:
+    cpu: "1"
+    memory: 512Mi

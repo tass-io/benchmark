@@ -18,11 +18,18 @@ SAMPLE_NUM = 30
 def wait():
     time.sleep(10)
 
+def sscmd(cmd):
+    return subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+
 def cmd(cmd):
     print(cmd)
-    res = subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+    res = sscmd(cmd)
     print(res)
     return res
+
+def scmd(cmd):
+    print(cmd)
+    return sscmd(cmd)
 
 workflow_path = './workflow/azure/workflow.yaml'
 function_path = './function/azure/function.yaml'
@@ -100,7 +107,7 @@ def sampleActionGen(chainLenSampleList):
             elem = workflow_spec.copy()
             elem['name'] += str(functionID)
             elem['function'] = func_name
-            elem['output'] = ['flow'+str(functionID+1)]
+            elem['outputs'] = ['flow'+str(functionID+1)]
             workflow['spec']['spec'].append(elem)
             # Create and apply functions
             function = {
@@ -119,9 +126,9 @@ def sampleActionGen(chainLenSampleList):
                 }
             }
             create_yaml_file(function, function_path)
-            cmd("tass-cli function create -c ./function/azure/code.zip -n " + func_name)
-            cmd("kubectl apply -f " + function_path)
-        del workflow['spec']['spec'][-1]['output']
+            cmd("tass-cli function create -c ./function/azure/plugin.so -n " + func_name)
+            scmd("kubectl apply -f " + function_path)
+        del workflow['spec']['spec'][-1]['outputs']
         if length == 1:
             elem['role'] = 'orphan'
         else:
@@ -130,7 +137,7 @@ def sampleActionGen(chainLenSampleList):
         # Apply workflow
         create_yaml_file(workflow, workflow_path)
         cmd("kubectl apply -f " + workflow_path)
-        print("Sample creation complete")
+        print("Sample %d creation complete" %sequenceID)
     wait()
     return 
 

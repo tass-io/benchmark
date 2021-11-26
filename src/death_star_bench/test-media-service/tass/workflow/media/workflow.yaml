@@ -1,0 +1,131 @@
+# A swith function workflow to mock death star benchmark
+
+apiVersion: serverless.tass.io/v1alpha1
+kind: Workflow
+metadata:
+  namespace: default
+  name: bench-06-media
+spec:
+  spec:
+  - name: nginx
+    function: bench-06-media-nginx
+    statement: direct
+    role: start
+    outputs:
+    - id
+  - name: id
+    function: bench-06-media-id
+    statement: switch
+    conditions:
+    - name: root
+      type: string
+      operator: eq
+      target: $.next
+      comparison: movie-id
+      destination:
+        isTrue:
+          flows:
+          - movie-id
+        isFalse:
+          conditions:
+          - text-service
+    - name: text-service
+      type: string
+      operator: eq
+      target: $.next
+      comparison: text-service
+      destination:
+        isTrue:
+          flows:
+          - text-service
+        isFalse:
+          conditions:
+          - user-service
+    - name: user-service
+      type: string
+      operator: eq
+      target: $.next
+      comparison: user-service
+      destination:
+        isTrue:
+          flows:
+          - user-service
+  - name: movie-id
+    function: bench-06-media-movie-id
+    statement: switch
+    conditions:
+    - name: root
+      type: string
+      operator: eq
+      target: $.next
+      comparison: rating
+      destination:
+        isTrue:
+          flows:
+          - rating
+        isFalse:
+          conditions:
+          - compose-review
+    - name: compose-review
+      type: string
+      operator: eq
+      target: $.next
+      comparison: compose-review
+      destination:
+        isTrue:
+          flows:
+          - compose-review
+  - name: text-service
+    function: bench-06-media-text-service
+    statement: direct
+    outputs:
+    - compose-review
+  - name: user-service
+    function: bench-06-media-user-service
+    statement: direct
+    outputs:
+    - compose-review
+  - name: rating
+    function: bench-06-media-rating
+    statement: direct
+    role: end
+  - name: compose-review
+    function: bench-06-media-compose-review
+    statement: switch
+    conditions:
+    - name: root
+      type: string
+      operator: eq
+      target: $.next
+      comparison: movie-review
+      destination:
+        isTrue:
+          flows:
+          - movie-review
+        isFalse:
+          conditions:
+          - user-review
+    - name: user-review
+      type: string
+      operator: eq
+      target: $.next
+      comparison: user-review
+      destination:
+        isTrue:
+          flows:
+          - user-review
+  - name: movie-review
+    function: bench-06-media-movie-review
+    statement: direct
+    outputs:
+    - review-storage
+  - name: user-review
+    function: bench-06-media-user-review
+    statement: direct
+    outputs:
+    - review-storage
+  - name: review-storage
+    function: bench-06-media-review-storage
+    statement: direct
+    role: end
+  

@@ -1,0 +1,54 @@
+# A swith function workflow to mock death star benchmark
+
+apiVersion: serverless.tass.io/v1alpha1
+kind: Workflow
+metadata:
+  namespace: default
+  name: bench-05-hotel
+spec:
+  spec:
+  - name: nginx
+    function: bench-05-hotel-nginx
+    statement: switch
+    role: start
+    conditions:
+    - name: root
+      type: string
+      operator: eq
+      target: $.next
+      comparison: check-reservation
+      destination:
+        isTrue:
+          flows:
+          - check-reservation
+        isFalse:
+          conditions:
+          - make-reservation
+    - name: make-reservation
+      type: string
+      operator: eq
+      target: $.next
+      comparison: make-reservation
+      destination:
+        isTrue:
+          flows:
+          - make-reservation
+  - name: check-reservation
+    function: bench-05-hotel-check-reservation
+    statement: direct
+    outputs:
+    - get-profiles
+  - name: make-reservation
+    function: bench-05-hotel-make-reservation
+    statement: direct
+    role: end
+  - name: get-profiles
+    function: bench-05-hotel-get-profiles
+    statement: direct
+    outputs:
+    - search
+  - name: search
+    function: bench-05-hotel-search
+    statement: direct
+    role: end
+  

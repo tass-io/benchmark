@@ -1,25 +1,66 @@
-import os, time, csv,subprocess, json
+import os, time, csv, random, subprocess, json, gc
 from itertools import repeat
 
 default_test_conf = {
-    "loop_times": 100,
-    "warm_up_times": 5,
+    "loop_times": 1000,
+    "warm_up_times": 400,
+    "cold_times": 100,
     "res_file": './result.csv',
-    'cold_times': 10,
-    'cold_res_file': './cold.csv'
+    'cold_res_file': './cold.csv',
+    
 }
 
-name = "bench-01-hello"
-param = {
-    'name': 'tass-benchmark' 
+name = "bench-06-media"
+seed = 6 << 14 # seed will grow as test proceed (in generate_param())
+probTable = [[[1,1]],[[0.44,2],[0.66,3],[1,4]],[[0.5,5],[1,6]],[[1,6]],[[1,6]],[],[[0.5,7],[1,8]],[[1,9]],[[1,9]],[]]
+funcNames = ['nginx','id','movie-id','text-service','user-service','rating','compose-review','movie-review','user-review','review-storage']
+funcTimes = [[9,0.1],[19,0.1],[145,0.1],[76,0.1],[37,0.1],[128,0.1],[458,0.1],[18,0.1],[62,0.1],[20,0.1]]
+inner_param_schema = {
+    "path": [],
+    "exec": [],
+    "depth": 0
 }
 param_schema = {
-    "workflowName": "%s" %name,
+    "workflowName": "%s" %name, 
     "flowName": "",
     "parameters": {}
 }
 success = True
 errors = 0
+
+def get_random_exec(funcTime):
+    return random.gauss(funcTime[0], funcTime[0]*funcTime[1])
+
+def generate_param():
+    global seed
+    seed += 1
+    path = [funcNames[0]]
+    exec = [0, get_random_exec(funcTimes[0])] # set a offset to make time work
+    cur = 0
+    while True:
+        if len(probTable[cur]) == 0:
+            # The last function will get value from this, too
+            path.append("placeholder")
+            break 
+        p_cur = 0
+        r = random.random()
+        while True:
+            if p_cur == len(probTable[cur]):
+                p_cur -= 1
+                break
+            if r < probTable[cur][p_cur][0]:
+                break
+            p_cur += 1
+        cur = probTable[cur][p_cur][1]
+        path.append(funcNames[cur])
+        exec.append(get_random_exec(funcTimes[cur]))
+    return {"path": path, "exec": exec, "seed": seed}
+    
+def get_param_str(param):
+    ps = param_schema.copy()
+    ps['parameters'] = inner_param_schema.copy()
+    ps['parameters'].update(param)
+    return json.dumps(ps)
 
 def cold_start_release(): # sleep 15min for warm resource released
     time.sleep(60)
@@ -39,23 +80,21 @@ def cmd(cmd):
 def scmd(cmd):
     print(cmd)
     return sscmd(cmd)
-
+    
 def clear_all():
     cmd("tass-cli function list | grep bench | awk '{print $2}' | xargs -n1 -I{} -P0 tass-cli function delete -n {}")
     cmd("kubectl get workflow | grep bench | awk '{print $1}' | xargs -n1 -I{} -P0 kubectl delete workflow {}")
     wait()
-    
-def post_json(url, data):
-    ps = param_schema.copy()
-    ps['parameters'] = data
-    return scmd("curl --max-time 900 -s -S --header \"Content-Type: application/json\" --request POST --data-raw \'%s\' \"%s\"" %(json.dumps(ps), url))
+
+def post_json(url, param):
+    return scmd("""curl --max-time 900 -s -S --header "Content-Type: application/json" --request POST --data-raw '%s' "%s" """ %(get_param_str(param), url))
 
 def deploy():
     clear_all()
-    # cli 部署函数
-    cmd("tass-cli function create -c ./function/hello/plugin.so -n %s" %name)
-    # 部署各种 yaml 文件
-    cmd("kubectl apply -f ./function/hello/function.yaml -f ./workflow/hello/workflow.yaml")
+    # 部署函数
+    cmd("cd ./function; ls | while IFS= read -r i; do tass-cli function create -c ./$i/plugin.so -n %s-$i && kubectl apply -f ./$i/function.yaml; done" %name)
+    # 部署工作流
+    cmd("kubectl apply -f ./workflow/media/workflow.yaml")
     wait()
 
 def parseTime(timeStr):
@@ -72,12 +111,12 @@ def parseTime(timeStr):
         raise ValueError('Not supported time end from %s' %(timeStr))
     return res
 
-def req():
+def req(param):
     global errors
     try:
-        host=cmd("kubectl get svc | grep %s | awk '{print $3}'" %name)[:-1]
-        res = json.loads(post_json('http://%s/v1/workflow/' %host, param.copy()))
-        execTime = parseTime(res["time"])
+        host = sscmd("kubectl get svc | grep %s | awk '{print $3}'" %name)[:-1]
+        res = json.loads(post_json('http://%s/v1/workflow/' %host, param))
+        execTime = parseTime(res['time'])
         status = res['success']
         if status != success:
             print(res)
@@ -88,29 +127,30 @@ def req():
         errors += 1
         return False, 0, 0
 
-def must_req():
-    status, execTime, res = req()
+def must_req(param):
+    status, execTime, res = req(param)
     while status != success:
         print("=================\nA err req occured\n=================")
-        status, execTime, res = req()
+        status, execTime, res = req(param)
     return status, execTime, res
 
 def test_loop(loops, warmups, resFile):
     if loops != 0:    
         for i in repeat(None, warmups):
-            req()
+            req(generate_param())
         resfile = open(resFile, 'w')
         writer = csv.writer(resfile, delimiter='@')
-        writer.writerow(['execTime(µs)', 'status', 'res'])
+        writer.writerow(['execTime(µs)', 'status', 'designedFuncTimes', 'designedFuncPath', 'res'])
         avgTime = validNum = 0
         for i in repeat(None, loops):
             if warmups == -1: # -1 warmups is recognized as cold test
                 cold_start_release()
-            status, execTime, res = must_req()
+            param = generate_param()
+            status, execTime, res = must_req(param)
             if status == success:
                 avgTime += execTime
                 validNum += 1
-            writer.writerow([execTime, status, res])
+            writer.writerow([execTime, status, param['exec'], param['path'], res])
         writer.writerow(["avgTime(µs)"])
         writer.writerow([avgTime / validNum])
         resfile.close()
@@ -130,6 +170,7 @@ def get_model():
 def do(input_conf):
     conf = default_test_conf.copy()
     conf.update(input_conf)
+    random.seed(seed)
     deploy()
     test(conf)
     get_model()

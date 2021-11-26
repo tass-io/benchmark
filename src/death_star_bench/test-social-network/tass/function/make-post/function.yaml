@@ -1,0 +1,10 @@
+apiVersion: serverless.tass.io/v1alpha1
+kind: Function
+metadata:
+  name: bench-07-social-make-post
+  namespace: default
+spec:
+  environment: Golang
+  resource:
+    cpu: "1"
+    memory: 512Mi
