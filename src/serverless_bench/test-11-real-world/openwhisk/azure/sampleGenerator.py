@@ -52,7 +52,7 @@ def sampleActionGen(chainLenSampleList):
     sampleNum = len(chainLenSampleList)
     
     for sequenceID in range(sampleNum):
-        appName = "app%d" %sequenceID
+        appName = "bench-04-azure%d" %sequenceID
         length = chainLenSampleList[sequenceID]
         
         # TODO: OpenWhisk's sequenceMaxActions is 50
@@ -63,7 +63,7 @@ def sampleActionGen(chainLenSampleList):
         funcChainStr = ""
         # Create functions in the app
         for functionID in range(length):
-            cmd = "./action_update.sh %d %d" %(sequenceID, functionID)
+            cmd = "wsk -i action update func-%d-%d main.go -m 512 -t 300000" %(sequenceID, functionID)
             r = os.popen(cmd)
             r.read()
 
