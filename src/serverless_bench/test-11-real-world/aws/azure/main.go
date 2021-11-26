@@ -38,9 +38,7 @@ func HandleRequest(p Param) (Output, error) {
 	startTime := time.Now().UnixNano() / 1000000
 	rand.Seed(p.Seed + int64(p.Sequence))
 	var sequence int
-	if p.Sequence != 0 {
-		sequence = p.Sequence + 1
-	}
+	sequence = p.Sequence + 1
 
 	mmStartTime := time.Now().UnixNano() / 1000000
 	memory, memSize, err := mallocRandMem()

@@ -8,7 +8,7 @@ func_arn = "arn:aws-cn:lambda:cn-northwest-1:648513213171:function:"
 stepfuncs_arn = "arn:aws-cn:states:cn-northwest-1:648513213171:stateMachine:"
 log_name_prefix = '/aws/vendedlogs/states/'
 exec_log_filter= 'fields @message | filter @message like /(?i)(ExecutionStarted|ExecutionSucceeded)/'
-log_interval=2700 # 45min
+log_interval=600 # 2700 , 45min
 errors = 0
 succ_status = 'SUCCEEDED'
 log_succ_status = 'Complete'
@@ -55,14 +55,13 @@ def jecmd(cmd, assertion, expStr):
             assertionDone = True
         except Exception as e:
             print("ASSERTION ERROR!!", e, "RESULT:", res)
-            time.sleep(20 + 20*random.random()/10)
     return res
     
 # Constant parameters
 SECONDS_OF_A_DAY=3600 * 24
 MILLISECONDS_PER_SECOND = 1000
 
-TOTAL_RUN_TIME = 86400
+TOTAL_RUN_TIME = 3600 # TODO
 RESULT_FILENAME = "result.csv"
 SAMPLE_NUM = 30
 MANUAL_SAMPLE_GENERATION = False
@@ -148,7 +147,7 @@ def get_res_from_log(result, metaStart):
             del arnMap[arn]
         if not hasTouch:
             print("WTF?!?!?!? ID%d no logs touching!!!!!" %(result['id']))
-            start = metaStart # TODO
+            start = metaStart
         if len(arnMap) > 1:
             print("ID%d has %d logs are waiting" %(result['id'], len(arnMap) - 1))
         time.sleep(log_interval + log_interval * random.random() / 10)
@@ -165,7 +164,7 @@ def Invoke(appName, results):
     cv = cvArr[id]
 
     result = {"avgIAT": avgIAT, "cv": cv, "invokes": [], "arnMap": {"finish": False}, "id": id}
-    t = threading.Thread(target=get_res_from_log,args=[result,(utils.getTime() / MILLISECONDS_PER_SECOND)])
+    t = threading.Thread(target=get_res_from_log,args=[result,(utils.getTime() / MILLISECONDS_PER_SECOND) - 3600]) #TODO remove 3600
     t.start()
 
     mutex.acquire()
@@ -245,56 +244,31 @@ def generateInvokes():
         # sampleGenerator.sampleActionGen(chainLenSampleList)
         print("Sample generation completes")
         print("-----------------------\n")
-    resultFile = open(RESULT_FILENAME, "w")
-    resultFile.write("appName@avgIAT@cv@latencies@status@rss\n")
+    # resultFile = open(RESULT_FILENAME, "w")
+    # resultFile.write("appName@avgIAT@cv@latencies@status@rss\n")
     threads = []
-    results = {}
-
-    testStartTime = utils.getTime()
-    for i in range(SAMPLE_NUM):
-        appName = "%s%d" %(name, i)
-        t = threading.Thread(target=Invoke,args=[appName,results])
-        threads.append(t)
-
-    for thread in threads:
-        thread.start()
-
-    t = threading.Thread(target=printResults,args=[results, False, "./results"])
-    tt = threading.Thread(target=printResults,args=[{"len": len(results)}, False, "./results-len"])
-    t.start()
-    tt.start()
-    for thread in threads:
-        thread.join() 
-
-    global all_done
-    all_done = True  
-
-    t.join()
-    tt.join()
-
-    t = threading.Thread(target=printResults,args=[results, True, "./results"])
-    t.start()
-    t.join()
-
-    tt = threading.Thread(target=printResults,args=[{"len": len(results)}, False, "./results-len"])
-    tt.start()
-    tt.join()
+    rsf = open("./results.copy", "r")
+    results = json.load(rsf)
 
     for appName, result in results.items():
-        resultFile.write("%s@%.2f@%.2f@%s@%s@%s\n" %(appName, result['avgIAT'], result['cv'], str(list(map(lambda invoke: invoke['execTime'], result['invokes']))[1:-1]),  str(list(map(lambda invoke: invoke['status'], result['invokes']))[1:-1]), str(list(map(lambda invoke: invoke['rs'], result['invokes']))[1:-1])))    
+        print(appName)
+        invokes = result['invokes']
+        print("len of invokes:", len(invokes))
+        for invoke in invokes:
+            if invoke['status'] == succ_status and "execTime" not in invoke.keys():
+                if 'execArn' in invoke.keys():
+                    print(invoke['execArn'])
+                else:
+                    print("NO ARN ???", invoke)
+        # resultFile.write("%s@%.2f@%.2f@%s@%s@%s\n" %(appName, result['avgIAT'], result['cv'], str(list(map(lambda invoke: invoke['execTime'], result['invokes']))[1:-1]),  str(list(map(lambda invoke: invoke['status'], result['invokes']))[1:-1]), str(list(map(lambda invoke: invoke['rs'], result['invokes']))[1:-1])))    
         
-    resultFile.close()
+    # resultFile.close()
 
-    t = threading.Thread(target=printResults,args=[results, True, "./results-with-log"])
-    t.start()
-    t.join()
+    # t = threading.Thread(target=printResults,args=[results, True, "./results-with-log"])
+    # t.start()
+    # t.join()
 
-    testEndTime = utils.getTime()
-    print("-----------------------")
-    duration = (testEndTime - testStartTime) / MILLISECONDS_PER_SECOND
-    print("Test duration: %.2f s" %duration)
-    print("Test finished")
-    print("ERRORS REQS: %d" %errors)
+    print("handle results finished")
 
 if __name__ == "__main__":
     generateInvokes()

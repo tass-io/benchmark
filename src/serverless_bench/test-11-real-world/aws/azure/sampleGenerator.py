@@ -11,7 +11,6 @@
 
 import random, time, subprocess
 import os, json
-import yaml
 
 name = "bench-04-azure"
 
@@ -55,7 +54,6 @@ def empty_cmd(cmd):
     return len(sscmd(cmd)) == 0
     
 def clear_all():
-    sscmd("rm -rf *.csv")
     for sequenceID in range(SAMPLE_NUM):
         sscmd("aws logs --profile linxuyalun delete-log-group --log-group-name %s%s%d" %(log_name_prefix, name, sequenceID))
     while not empty_cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s" %name):
@@ -65,8 +63,7 @@ def clear_all():
         cmd("aws stepfunctions list-state-machines --profile linxuyalun --max-items 200 | grep \\\"name\\\" | grep %s | cut -d \\\" -f 4 | xargs -n1 -P0 -I{} aws stepfunctions delete-state-machine --profile linxuyalun --state-machine-arn %s{}" %(name, stepfuncs_arn))
         wait()
 
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'config.yaml')), yaml.FullLoader)
-SAMPLE_NUM = config['sample_number']
+SAMPLE_NUM = 30
 
 def create_json_file(object, filepath):
     if os.path.exists(filepath):
@@ -136,6 +133,7 @@ def sampleActionGen(chainLenSampleList):
             cmd("aws lambda create-function --profile linxuyalun --runtime go1.x --handler main --memory-size 512 --timeout 900 --role %s --zip-file fileb://code.zip --function-name %s%d-%d" %(func_role, name, sequenceID, functionID))
             # wait until function created:
             while empty_cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep %s%d-%d" %(name, sequenceID, functionID)):
+                cmd("aws lambda create-function --profile linxuyalun --runtime go1.x --handler main --memory-size 512 --timeout 900 --role %s --zip-file fileb://code.zip --function-name %s%d-%d" %(func_role, name, sequenceID, functionID))
                 wait()
         # Create stepfunction machine and apply it
         create_json_file(machine, machine_path)
@@ -145,6 +143,7 @@ def sampleActionGen(chainLenSampleList):
         cmd("aws stepfunctions create-state-machine --logging-configuration '%s' --profile linxuyalun --role-arn %s --definition file://stepfunctions --type EXPRESS --name %s%d" %(json.dumps(stepfuncs_log_conf), stepfuncs_role, name, sequenceID))
         # wait until machine created:
         while empty_cmd("aws stepfunctions list-state-machines --profile linxuyalun --max-items 200 | grep %s%d" %(name,sequenceID)):
+            cmd("aws stepfunctions create-state-machine --logging-configuration '%s' --profile linxuyalun --role-arn %s --definition file://stepfunctions --type EXPRESS --name %s%d" %(json.dumps(stepfuncs_log_conf), stepfuncs_role, name, sequenceID))
             wait()
         print("Sample %d creation complete" %sequenceID)
     return 

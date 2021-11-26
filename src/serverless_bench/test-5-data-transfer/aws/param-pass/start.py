@@ -48,7 +48,7 @@ def generate_payload(payload):
     res = scmd('openssl rand -hex %d' %(payload/2))[:-1] # remove cmd tailling line break
     param_s = param_schema.copy()
     param_s['payload'] = res
-    if len(param) > 1 * 1024 * 32:
+    if payload > 1 * 1024 * 32:
         create_json_file(param_s, './input')
         scmd("aws s3 cp ./input s3://params/param0 --profile linxuyalun")
         scmd("rm ./input")
@@ -79,7 +79,6 @@ def empty_cmd(cmd):
     return len(sscmd(cmd)) == 0
     
 def clear_all():
-    sscmd("rm -rf *.csv")
     sscmd("aws logs --profile linxuyalun delete-log-group --log-group-name %s%s" %(log_name_prefix, name))
     while not empty_cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s" %name):
         cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s | cut -d \\\" -f 4 | xargs -n1 -P0 -I{} aws lambda --profile linxuyalun delete-function --function-name {}" %name)

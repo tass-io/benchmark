@@ -42,7 +42,6 @@ def empty_cmd(cmd):
     return len(sscmd(cmd)) == 0
     
 def clear_all():
-    sscmd("rm -rf *.csv")
     sscmd("aws logs --profile linxuyalun delete-log-group --log-group-name %s%s" %(log_name_prefix, name))
     while not empty_cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s" %name):
         cmd("aws lambda list-functions --profile linxuyalun --max-items 200 | grep FunctionName | grep %s | cut -d \\\" -f 4 | xargs -n1 -P0 -I{} aws lambda --profile linxuyalun delete-function --function-name {}" %name)
@@ -107,7 +106,7 @@ def get_res(res_file, query, handle_res):
     writer.writerow(['execTime(ms)'])
     for res in res_arr: writer.writerow([res])
     writer.writerow(['avgTime(ms)'])
-    writer.writerow([reduce(lambda x, y: x+y, res_arr)])
+    writer.writerow([reduce(lambda x, y: x+y, res_arr) / len(res_arr)])
 
 def test(conf):  
     # warm tests
