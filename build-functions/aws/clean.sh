@@ -6,6 +6,8 @@ source "../script-config"
 set -x 
 set -e
 
+rm -f main code.zip
+
 ls ${SRC} | 
 while IFS= read -r BENCH; do 
     ls ${SRC}/${BENCH} | 

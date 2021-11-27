@@ -14,6 +14,8 @@ while IFS= read -r BENCH; do
     while IFS= read -r CASE; do 
         CODE="${SRC}/${BENCH}/${CASE}/aws" 
         go build -o ${CODE}/main ${CODE}/main.go
-        zip ${CODE}/code.zip ${CODE}/main
+        cp ${CODE}/main ./
+        zip code.zip -qr main
+        cp code.zip ${CODE}/code.zip
     done
 done
