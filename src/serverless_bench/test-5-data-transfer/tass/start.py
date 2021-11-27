@@ -60,6 +60,7 @@ def deploy():
 def create_json_file(object, filepath):
     if os.path.exists(filepath):
         os.remove(filepath)
+    sscmd("mkdir -p $(dirname %s)" %filepath)
     file = open(filepath, 'w')
     json.dump(object, file)
     file.close()

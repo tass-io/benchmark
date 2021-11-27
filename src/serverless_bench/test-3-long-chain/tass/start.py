@@ -56,6 +56,7 @@ def clear_all():
 def create_yaml_file(object, filepath):
     if os.path.exists(filepath):
         os.remove(filepath)
+    sscmd("mkdir -p $(dirname %s)" %filepath)
     file = open(filepath, 'w')
     yaml.dump(object, file, default_flow_style=False)
     file.close()

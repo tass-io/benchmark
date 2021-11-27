@@ -10,11 +10,18 @@ machine_path = './stepfunctions'
 def wait():
     time.sleep(6)
 
+def sscmd(cmd):
+    return subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+
 def cmd(cmd):
     print(cmd)
-    res = subprocess.run(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,encoding="utf-8").stdout
+    res = sscmd(cmd)
     print(res)
     return res
+
+def scmd(cmd):
+    print(cmd)
+    return sscmd(cmd)
 
 def empty_str(str):
     return len(str) == 0
@@ -30,6 +37,7 @@ def clear_all(chain_name):
 def create_json_file(object, filepath):
     if os.path.exists(filepath):
         os.remove(filepath)
+    sscmd("mkdir -p $(dirname %s)" %filepath)
     file = open(filepath, 'w')
     json.dump(object, file)
     file.close()
