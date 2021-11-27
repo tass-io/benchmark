@@ -13,7 +13,7 @@ while IFS= read -r BENCH; do
         ls ${SRC}/${BENCH}/${CASE}/tass/function |
         while IFS= read -r FUNC; do
             CODE="${SRC}/${BENCH}/${CASE}/tass/function/${FUNC}" 
-            rm -r ${CODE}/plugin.so
+            rm -f ${CODE}/plugin.so
         done
     done
 done
