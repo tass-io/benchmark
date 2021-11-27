@@ -15,7 +15,7 @@ while IFS= read -r BENCH; do
         ls ${SRC}/${BENCH}/${CASE}/tass/function |
         while IFS= read -r FUNC; do
             CODE="${SRC}/${BENCH}/${CASE}/tass/function/${FUNC}" 
-            GOARCH=amd64 go build -o ${CODE}/plugin.so --buildmode=plugin ${CODE}/plugin.go
+            CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${CODE}/plugin.so --buildmode=plugin ${CODE}/plugin.go
         done
     done
 done
