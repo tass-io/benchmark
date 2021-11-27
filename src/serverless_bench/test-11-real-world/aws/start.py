@@ -242,7 +242,7 @@ def generateInvokes():
         print("Generate the samples")
         import sampleGenerator
         # chainLenSampleList = sampleGenerator.chainLenSampleListGen(SAMPLE_NUM)
-        # sampleGenerator.sampleActionGen(chainLenSampleList)
+        sampleGenerator.sampleActionGen(chainLenSampleList)
         print("Sample generation completes")
         print("-----------------------\n")
     resultFile = open(RESULT_FILENAME, "w")

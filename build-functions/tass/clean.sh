@@ -6,8 +6,6 @@ source "../script-config"
 set -x 
 set -e
 
-# ./clean.sh # TODO
-
 ls ${SRC} | 
 while IFS= read -r BENCH; do 
     ls ${SRC}/${BENCH} | 
